@@ -1,0 +1,5 @@
+BK9130B1address = "ASRL/dev/ttyUSB4::INSTR"
+BK9130B2address = "ASRL/dev/ttyUSB3::INSTR"
+BK1697address = "WARNING: BK1697 not detected"
+BK9184address = "ASRL/dev/ttyUSB0::INSTR"
+shutteraddress= "ASRL12::INSTR"
