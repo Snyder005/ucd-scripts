@@ -5,6 +5,17 @@ import ucd_bench
 import ucd_stage
 
 class TestCoordinator(object):
+    """Base class for taking images.
+
+    Parameters
+    ----------
+    options : `dict`
+       Dictionary contining image acquisition options.
+    test_type : `str`
+       Type of acquisition test.
+    image_type : `str`
+       Type of image.
+    """
 
     def __init__(self, options, test_type, image_type):
         self.run = options['run']
@@ -53,13 +64,15 @@ class TestCoordinator(object):
         return data
 
     def take_bias_image(self):
+        """Take a bias image."""
         return self.__take_image(0, None, image_type='BIAS')
 
     def take_image(self, exposure, expose_command, image_type=None):
+        """Take a test image."""
         return self.__take_image(exposure, expose_command, image_type)
 
     def __take_image(self, exposure, expose_command, image_type=None):
-        """Take an image.
+        """Base method for taking an image.
 
         Parameters
         ----------
@@ -78,30 +91,36 @@ class TestCoordinator(object):
 
 class BiasTestCoordinator(TestCoordinator):
     """A TestCoordinator for taking only bias images."""
+
     def __init__(self, options):
         super(BiasTestCoordinator, self).__init__(options, 'BIAS', 'BIAS')
         self.count = options.getInt('count', 10)
 
     def take_images(self):
+        """Take multiple bias images."""
         self.take_bias_images(self.count)
 
 class BiasPlusImagesTestCoordinator(TestCoordinator):
     """Base Class for all tests that involve n bias images per test image."""
+
     def __init__(self, options, test_type, image_type):
         super(BiasPlusImagesTestCoordinator, self).__init__(options, test_type, image_type)
         self.bcount = int(options.get('bcount', '1'))
 
     def take_bias_plus_image(self, exposure, expose_command, image_type=None):
+        """Take a bias image and a test image."""
         self.take_bias_images(self.bcount)
         self.take_image(exposure, expose_command, image_type)
 
 class DarkTestCoordinator(BiasPlusImagesTestCoordinator):
     """A TestCoordinator for darks."""
+
     def __init__(self, options):
         super(DarkTestCoordinator, self).__init__(options, 'DARK', 'DARK')
         self.darks = options.getList('dark')
 
     def take_images(self):
+        """Take multiple dark images."""
         for dark in self.darks:
             integration, count = dark.split()
             integration = float(integration)
@@ -113,12 +132,14 @@ class DarkTestCoordinator(BiasPlusImagesTestCoordinator):
 
 class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
     """A TestCoordinator for flats."""
+
     def __init__(self, options):
         super(FlatFieldTestCoordinator, self).__init__(options, 'FLAT', 'FLAT')
         self.flats = options.getList('flat')
         self.wl_filter = options.get('wl')
 
     def take_images(self):
+        """Take multiple flat field images."""
         for flat in self.flats:
             exposure, count = flat.split()
             exposure = float(exposure)
@@ -130,6 +151,7 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
 
 class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
     """A TestCoordinator for spot/streak images."""
+
     def __init__(self, options):
         super(SpotTestCoordinator, self).__init__(options, 'SPOT', 'SPOT')
         self.imcount = int(options.get('imcount', '1'))
@@ -141,6 +163,7 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
         self.stagez = 0
 
     def take_images(self):
+        """Take multiple spot images."""
         def moveTo(point):
             """A wrapper to 'moveTo' to store the current position."""
             splittedpoints = point.split()
@@ -165,21 +188,25 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
                     self.take_bias_plus_image(exposure, expose_command)
 
 def do_bias(options):
+    """Initialize a BiasTestCoordinator and take images."""
     print "bias called {0}".format(options)
     tc = BiasTestCoordinator(options)
     tc.take_images()
 
 def do_dark(options):
+    """Initialize a DarkTestCoodrinator and take images."""
     print "dark called {0}".format(options)
     tc = DarkTestCoordinator(options)
     tc.take_images()
 
 def do_flat(options):
+    """Initialize a FlatFieldTestCoordinator and take images."""
     print "flat called {0}".format(options)
     tc = FlatFieldTestCoordinator(options)
     tc.take_images()
 
 def do_spot(options):
+    """Initialize a SpotTestCoordinator and take images."""
     print "spot called {0}".format(options)
     tc = SpotTestCoordinator(options)
     tc.take_images()
