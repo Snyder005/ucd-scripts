@@ -159,7 +159,7 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
 
     def compute_exposure_time(self, e_per_pixel):
         e_per_pixel = float(e_per_pixel)
-        seconds = e_per_pixel/self.signalpersec
+        seconds = np.round(e_per_pixel/self.signalpersec, 1)
         print "Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel)
         return seconds
 
@@ -192,7 +192,7 @@ class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
 
     def compute_exposure_time(self, e_per_pixel):
         e_per_pixel = float(e_per_pixel)
-        seconds = e_per_pixel/self.signalpersec
+        seconds = np.round(e_per_pixel/self.signalpersec, 1)
         print "Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel)
         return seconds
 
@@ -250,6 +250,12 @@ def do_flat(options):
     """Initialize a FlatFieldTestCoordinator and take images."""
     print "flat called {0}".format(options)
     tc = FlatFieldTestCoordinator(options)
+    tc.take_images()
+   
+def do_persistence(options):
+    """Initialize a PersistenceTestCoordinator and take images."""
+    print "Persistence called %s" % options
+    tc = PersistenceTestCoordinator(options)
     tc.take_images()
 
 def do_spot(options):
