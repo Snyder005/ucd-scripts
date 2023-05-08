@@ -161,7 +161,7 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
 
     def compute_exposure_time(self, e_per_pixel):
         e_per_pixel = float(e_per_pixel)
-        seconds = np.round(e_per_pixel/self.signalpersec, 1)
+        seconds = round(e_per_pixel/self.signalpersec, 1)
         if seconds>self.hilim:
            print "Warning: exposure time %g > hilim (%g)" % (seconds, self.hilim)
            seconds = self.hilim
@@ -172,18 +172,20 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         return seconds
 
 class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
-    ''' A TestCoordinator for all tests that involve taking persitence with the flat field generator '''
+    ''' A TestCoordinator for all tests that involve taking persistence with the flat field generator '''
     def __init__(self, options):
-        super(PersistenceTestCoordinator, self).__init__(options, "BOT_PERSISTENCE", "FLAT")
+        super(PersistenceTestCoordinator, self).__init__(options, "PERSISTENCE", "FLAT")
         self.bcount = options.getInt('bcount', 10)
         self.wl_filter = options.get('wl')
+        self.hilim = options.getFloat('hilim', 999.0)
+        self.lolim = options.getFloat('lolim', 1.0)
         self.signalpersec = float(options.get('signalpersec'))
         self.persistence= options.getList('persistence')
 
     def take_images(self):
         e_per_pixel, n_of_dark, exp_of_dark, t_btw_darks= self.persistence[0].split()
         e_per_pixel = float(e_per_pixel)
-        exposure = self.compute_exposure_time(e_per_pixel)
+        exposure = round(self.compute_exposure_time(e_per_pixel), 1)
 
         # bias acquisitions
         self.take_bias_images(self.bcount)
@@ -200,7 +202,13 @@ class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
 
     def compute_exposure_time(self, e_per_pixel):
         e_per_pixel = float(e_per_pixel)
-        seconds = np.round(e_per_pixel/self.signalpersec, 1)
+        seconds = round(e_per_pixel/self.signalpersec, 1)
+        if seconds>self.hilim:
+           print "Warning: exposure time %g > hilim (%g)" % (seconds, self.hilim)
+           seconds = self.hilim
+        if seconds<self.lolim:
+           print "Warning: exposure time %g < lolim (%g)" % (seconds, self.lolim)
+           seconds = self.lolim
         print "Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel)
         return seconds
 
