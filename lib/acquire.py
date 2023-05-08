@@ -163,6 +163,39 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         print "Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel)
         return seconds
 
+class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
+    ''' A TestCoordinator for all tests that involve taking persitence with the flat field generator '''
+    def __init__(self, options):
+        super(PersistenceTestCoordinator, self).__init__(options, "BOT_PERSISTENCE", "FLAT")
+        self.bcount = options.getInt('bcount', 10)
+        self.wl_filter = options.get('wl')
+        self.signalpersec = float(options.get('signalpersec')
+        self.persistence= options.getList('persistence')
+
+    def take_images(self):
+        e_per_pixel, n_of_dark, exp_of_dark, t_btw_darks= self.persistence[0].split()
+        e_per_pixel = float(e_per_pixel)
+        exposure = self.compute_exposure_time(e_per_pixel)
+
+        # bias acquisitions
+        self.take_bias_images(self.bcount)
+
+        # dark acquisition
+        expose_command = lambda: ucd_bench.openShutter(exposure)
+        file_list = super(PersistenceTestCoordinator, self).take_image(exposure, expose_command, "FLAT")
+
+        # dark acquisition
+        for i in range(int(n_of_dark)):
+            time.sleep(float(t_btw_darks))
+            super(PersistenceTestCoordinator, self).take_image(float(exp_of_dark), lambda: time.sleep(float(exp_of_dark)), image_type="DARK")
+        return file_list
+
+    def compute_exposure_time(self, e_per_pixel):
+        e_per_pixel = float(e_per_pixel)
+        seconds = e_per_pixel/self.signalpersec
+        print "Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel)
+        return seconds
+
 class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
     """A TestCoordinator for spot/streak images."""
 
