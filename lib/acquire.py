@@ -143,17 +143,25 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         super(FlatFieldTestCoordinator, self).__init__(options, 'FLAT', 'FLAT')
         self.flats = options.getList('flat')
         self.wl_filter = options.get('wl')
+        self.signalpersec = float(options.get('signalpersec'))
 
     def take_images(self):
         """Take multiple flat field images."""
         for flat in self.flats:
-            exposure, count = flat.split()
-            exposure = float(exposure)
+            e_per_pixel, count = flat.split()
+            e_per_pixel = float(e_per_pixel)
+            exposure = self.compute_exposure_time(e_per_pixel)
             count = int(count)
             expose_command = lambda : ucd_bench.openShutter(exposure)
 
             for c in range(count):
                 self.take_bias_plus_image(exposure, expose_command)
+
+    def compute_exposure_time(self, e_per_pixel):
+        e_per_pixel = float(e_per_pixel)
+        seconds = e_per_pixel/self.signalpersec
+        print "Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel)
+        return seconds
 
 class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
     """A TestCoordinator for spot/streak images."""
