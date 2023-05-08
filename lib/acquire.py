@@ -24,6 +24,7 @@ class TestCoordinator(object):
         self.annotation = options.get('annotation', '')
         self.locations = LocationSet(options.get('locations', ''))
         self.clears = options.getInt('clears', 1)
+        self.extra_delay = options.getFloat('extradelay', 0)
 
     def take_images(self):
         raise NotImplementedError
@@ -84,6 +85,11 @@ class TestCoordinator(object):
             Description of the image type.
         """
         image_type = image_type if image_type else self.image_type
+
+        if self.extra_delay > 0:
+            print "Extra delay %g" % self.extra_delay
+            time.sleep(self.extra_delay)
+
         fits_header_data = self.create_fits_header_data(exposure, image_type)
         file_list = fp.takeExposure(expose_command, fits_header_data, self.annotation, self.locations, self.clears)
 
