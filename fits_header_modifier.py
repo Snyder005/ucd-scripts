@@ -9,18 +9,14 @@ def main(infiles):
         
         with fits.open(infile) as hdulist:
         
-            ## Rename Raft Bay
-            hdulist[0].header['RAFTBAY'] = 'R10'
-        
             ## Rearrange HDUs
-            for i in range(1, 5):
+            for i in range(9, 13):
                 
                 data1 = hdulist[i].data
-                data2 = hdulist[9-i].data
+                data2 = hdulist[25-i].data
                 
                 hdulist[i].data = data2
-                hdulist[9-i].data = data1
-            hdulist.writeto(infile.replace('R22', 'R10'))
+                hdulist[25-i].data = data1
 
 if __name__ == '__main__':
 
