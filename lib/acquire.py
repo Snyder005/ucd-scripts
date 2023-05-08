@@ -177,7 +177,7 @@ class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
         super(PersistenceTestCoordinator, self).__init__(options, "BOT_PERSISTENCE", "FLAT")
         self.bcount = options.getInt('bcount', 10)
         self.wl_filter = options.get('wl')
-        self.signalpersec = float(options.get('signalpersec')
+        self.signalpersec = float(options.get('signalpersec'))
         self.persistence= options.getList('persistence')
 
     def take_images(self):
