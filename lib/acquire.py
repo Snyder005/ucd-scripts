@@ -24,6 +24,7 @@ class TestCoordinator(object):
         self.annotation = options.get('annotation', '')
         self.locations = LocationSet(options.get('locations', ''))
         self.clears = options.getInt('clears', 1)
+        self.extra_delay = options.getFloat('extradelay', 0)
 
     def take_images(self):
         raise NotImplementedError
@@ -84,6 +85,11 @@ class TestCoordinator(object):
             Description of the image type.
         """
         image_type = image_type if image_type else self.image_type
+
+        if self.extra_delay > 0:
+            print "Extra delay %g" % self.extra_delay
+            time.sleep(self.extra_delay)
+
         fits_header_data = self.create_fits_header_data(exposure, image_type)
         file_list = fp.takeExposure(expose_command, fits_header_data, self.annotation, self.locations, self.clears)
 
@@ -137,17 +143,74 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         super(FlatFieldTestCoordinator, self).__init__(options, 'FLAT', 'FLAT')
         self.flats = options.getList('flat')
         self.wl_filter = options.get('wl')
+        self.hilim = options.getFloat('hilim', 999.0)
+        self.lolim = options.getFloat('lolim', 1.0)
+        self.signalpersec = float(options.get('signalpersec'))
 
     def take_images(self):
         """Take multiple flat field images."""
         for flat in self.flats:
-            exposure, count = flat.split()
-            exposure = float(exposure)
+            e_per_pixel, count = flat.split()
+            e_per_pixel = float(e_per_pixel)
+            exposure = self.compute_exposure_time(e_per_pixel)
             count = int(count)
             expose_command = lambda : ucd_bench.openShutter(exposure)
 
             for c in range(count):
                 self.take_bias_plus_image(exposure, expose_command)
+
+    def compute_exposure_time(self, e_per_pixel):
+        e_per_pixel = float(e_per_pixel)
+        seconds = round(e_per_pixel/self.signalpersec, 1)
+        if seconds>self.hilim:
+           print "Warning: exposure time %g > hilim (%g)" % (seconds, self.hilim)
+           seconds = self.hilim
+        if seconds<self.lolim:
+           print "Warning: exposure time %g < lolim (%g)" % (seconds, self.lolim)
+           seconds = self.lolim
+        print "Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel)
+        return seconds
+
+class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
+    ''' A TestCoordinator for all tests that involve taking persistence with the flat field generator '''
+    def __init__(self, options):
+        super(PersistenceTestCoordinator, self).__init__(options, "PERSISTENCE", "FLAT")
+        self.bcount = options.getInt('bcount', 10)
+        self.wl_filter = options.get('wl')
+        self.hilim = options.getFloat('hilim', 999.0)
+        self.lolim = options.getFloat('lolim', 1.0)
+        self.signalpersec = float(options.get('signalpersec'))
+        self.persistence= options.getList('persistence')
+
+    def take_images(self):
+        e_per_pixel, n_of_dark, exp_of_dark, t_btw_darks= self.persistence[0].split()
+        e_per_pixel = float(e_per_pixel)
+        exposure = round(self.compute_exposure_time(e_per_pixel), 1)
+
+        # bias acquisitions
+        self.take_bias_images(self.bcount)
+
+        # dark acquisition
+        expose_command = lambda: ucd_bench.openShutter(exposure)
+        file_list = super(PersistenceTestCoordinator, self).take_image(exposure, expose_command, "FLAT")
+
+        # dark acquisition
+        for i in range(int(n_of_dark)):
+            time.sleep(float(t_btw_darks))
+            super(PersistenceTestCoordinator, self).take_image(float(exp_of_dark), lambda: time.sleep(float(exp_of_dark)), image_type="DARK")
+        return file_list
+
+    def compute_exposure_time(self, e_per_pixel):
+        e_per_pixel = float(e_per_pixel)
+        seconds = round(e_per_pixel/self.signalpersec, 1)
+        if seconds>self.hilim:
+           print "Warning: exposure time %g > hilim (%g)" % (seconds, self.hilim)
+           seconds = self.hilim
+        if seconds<self.lolim:
+           print "Warning: exposure time %g < lolim (%g)" % (seconds, self.lolim)
+           seconds = self.lolim
+        print "Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel)
+        return seconds
 
 class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
     """A TestCoordinator for spot/streak images."""
@@ -203,6 +266,12 @@ def do_flat(options):
     """Initialize a FlatFieldTestCoordinator and take images."""
     print "flat called {0}".format(options)
     tc = FlatFieldTestCoordinator(options)
+    tc.take_images()
+   
+def do_persistence(options):
+    """Initialize a PersistenceTestCoordinator and take images."""
+    print "Persistence called %s" % options
+    tc = PersistenceTestCoordinator(options)
     tc.take_images()
 
 def do_spot(options):
