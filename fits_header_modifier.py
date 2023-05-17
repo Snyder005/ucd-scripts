@@ -30,8 +30,9 @@ def main(infiles):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('infiles', nargs='+')
+    parser = argparse.ArgumentParser(description='Reorder FITs file HDUs.')
+    parser.add_argument('infiles', nargs='+', 
+                        help='FITs files to process.')
     args = parser.parse_args()
 
     main(args.infiles)
