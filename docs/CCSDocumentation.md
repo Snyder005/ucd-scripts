@@ -59,7 +59,7 @@ Or
 
     ccd@viscacha:~$  ./my_jython_script.py
 
-If the shebang line is set to `\#! /usr/bin/env ccs-script`.
+If the shebang line is set to `#! /usr/bin/env ccs-script`.
 
 The UC Davis Beam Simulator test stand acquisition script `ucd-data.py` is a Jython script used to automate image acquisition using configurations set by YAML files.
 
