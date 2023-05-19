@@ -6,11 +6,12 @@ import subprocess
 import os
 import glob
 from datetime import datetime
+import numpy as np
 
 DATADIR = '/mnt/10TBHDD/data/'
 
 def main(date):
-
+    
     ## Verify date format
     try:
         datetime.strptime(date, '%Y%m%d')
@@ -20,6 +21,15 @@ def main(date):
 
     maindir = os.path.join(DATADIR, date)
     subdirs = os.path.join(maindir, 'TS_C_*')
+    
+    ## Delete Flush Bias
+    try:
+    	directories=np.array(glob.glob(subdirs))
+    	directories.sort()
+    	subprocess.run('rm -r '+directories[0],check=True, shell=True)
+    except subprocess.CalledProcessError as e:
+        print("Failed to remove flush bias.")
+        return 1
 
     ## Reorder amplifiers
     infiles = glob.glob(os.path.join(subdirs, '*S01.fits'))
@@ -49,6 +59,8 @@ def main(date):
             hdulist[0].header.add_history('Amp Order Fixed.')
             hdulist.flush()
             print("Amp order fixed.")
+            
+    
 
     ## Move FITs files
     try:
@@ -58,9 +70,10 @@ def main(date):
         print("Failed to move FITs files.")
         return 1
  
-    ## Delete remaining folder
+    ## Delete remaining files and folder
     try:
-        subprocess.run('rm -r {0}/'.format(subdirs), check=True, shell=True)
+        subprocess.run('rm {0}/*S00.fits {0}/*S02.fits'.format(subdirs), check=True, shell=True)
+        subprocess.run('rmdir {0}/'.format(subdirs), check=True, shell=True)
     except subprocess.CalledProcessError as e:
         print("Failed to remove subdirectories.")
         return 1
@@ -68,10 +81,7 @@ def main(date):
     return 0
 
 if __name__ == '__main__':
+    today=datetime.now().strftime("%Y%m%d")
+    main(today)
 
-    parser = argparse.ArgumentParser(description='Reorganize/process FITs files in a directory.')
-    parser.add_argument('date', type=str, 
-                        help='Target date with format YYYYMMDDDD')
-    args = parser.parse_args()
 
-    main(args.date)

@@ -12,14 +12,23 @@ os.system(source daq_enable_clocks.sh)
 ###############################################################################
 # Query the USB devices to have the correct device assigned to the correct USB port
 # Write USB addresses to file
+
+# Set the Baud rates. The pyvisa default is 9600, but the BK Precision 9130Bs run at 4800
+Baud9130B=	4800
+Baud1697=	9600
+Baud9184=	57600
+#Set termination characters where required
+BK1697termination='\r'
+shuttertermination='\r\n'
+
+
 ID9130B1 = 'B&K Precision, 9130B, 802361023737520053, 1.10-1.04\n'
 ID9130B2 = 'B&K Precision, 9130B, 802361023737520051, 1.10-1.04\n'
 OK1697 = 'OK'
 ID9184 = 'B&K PRECISION,9184,373B15105,2.04,0\r\n'
-shutter_reset_return ='$R -1\r\n'
-IDstageX = ''
-IDstageY = ''
-IDstageZ = ''
+shutter_reset_return='$R -1\x00\x00\r\n'
+shutter_reset_return2='\x00$R -1\x00\x00\r\n'
+stage=' '
 
 rm = pyvisa.ResourceManager()
 resources=rm.list_resources()
@@ -28,10 +37,8 @@ BK9130B1address = 'WARNING: BK9130B1 not detected'
 BK9130B2address = 'WARNING: BK9130B2 not detected'
 BK1697address = 'WARNING: BK1697 not detected'
 BK9184address = 'WARNING: BK9184 not detected'
-shutteraddress = 'WARNING: Shutter not connected'
-stageXaddress = ''
-stageYaddress = ''
-stageZaddress = ''
+shutteraddress = 'WARNING: Shutter not detected'
+stageaddress = 'Warning: Stage motor not detected'
 
 for tty in resources:
     device = rm.open_resource(tty)
@@ -59,29 +66,31 @@ for tty in resources:
                 if okresponse==OK1697:
                     BK1697address = tty
             except Exception:
+                device = rm.open_resource(tty)
+                device.write_termination=shuttertermination
+                device.read_termination=shuttertermination
                 try:
-        		ID=device.query('$R\r')
-        		if ID==shutter_reset_return.replace('\x00',''):
-            			shutteraddress = tty
-    		except Exception:
-        		pass
-        		
-#write the addresses to the USBaddresses.py file        		
-with open('/home/ccd/ccs/etc/USBaddresses.py', 'w') as f:
+                    ID=device.query('$O 2')
+                    if ID==shutter_reset_return or shutter_reset_return2:
+                        shutteraddress = tty
+                except Exception:
+                    pass
+                
+#write the addresses to the USBaddresses.py file
+with open('/home/ccd/ucd-scripts/lib/USBaddresses.py', 'w') as f:
     f.write('''BK9130B1address = "'''+BK9130B1address+'''"
 BK9130B2address = "'''+BK9130B2address+'''"
 BK1697address = "'''+BK1697address+'''"
 BK9184address = "'''+BK9184address+'''"
-shutteraddress= "'''+shutteraddress+'"')
+shutteraddress= "'''+shutteraddress+'''"
+stageaddress= "'''+stageaddress+'"')
 
 print('BK9130B1: '+BK9130B1address)
 print('BK9130B2: '+BK9130B2address)
 print('BK9184: '+BK1697address)
 print('BK1697: '+BK9184address)
 print('Shutter: '+shutteraddress)
-print('stageX: '+stageXaddress)
-print('stageY: '+stageYaddress)
-print('stageZ: '+stageZaddress)
+print('Stage Motor: '+stageaddress)
 
 ###############################################################################
 #REB5 Power Supply Startup
