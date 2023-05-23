@@ -3,6 +3,9 @@ import fp
 from org.lsst.ccs.utilities.location import LocationSet
 import ucd_bench
 import ucd_stage
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TestCoordinator(object):
     """Base class for taking images.
@@ -87,12 +90,12 @@ class TestCoordinator(object):
         image_type = image_type if image_type else self.image_type
 
         if self.extra_delay > 0:
-            print "Extra delay %g" % self.extra_delay
+            logger.info("Extra delay %g" % self.extra_delay)
             time.sleep(self.extra_delay)
 
         fits_header_data = self.create_fits_header_data(exposure, image_type)
         file_list = fp.takeExposure(expose_command, fits_header_data, self.annotation, self.locations, self.clears)
-
+        print(file_list)
         return file_list
 
 class BiasTestCoordinator(TestCoordinator):
@@ -163,12 +166,12 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         e_per_pixel = float(e_per_pixel)
         seconds = round(e_per_pixel/self.signalpersec, 1)
         if seconds>self.hilim:
-           print "Warning: exposure time %g > hilim (%g)" % (seconds, self.hilim)
-           seconds = self.hilim
+            logger.warning("Exposure time %g > hilim (%g)" % (seconds, self.hilim))
+            seconds = self.hilim
         if seconds<self.lolim:
-           print "Warning: exposure time %g < lolim (%g)" % (seconds, self.lolim)
-           seconds = self.lolim
-        print "Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel)
+            logger.warning("Exposure time %g < lolim (%g)" % (seconds, self.lolim))
+            seconds = self.lolim
+        logger.info("Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel))
         return seconds
 
 class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
@@ -204,12 +207,12 @@ class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
         e_per_pixel = float(e_per_pixel)
         seconds = round(e_per_pixel/self.signalpersec, 1)
         if seconds>self.hilim:
-           print "Warning: exposure time %g > hilim (%g)" % (seconds, self.hilim)
-           seconds = self.hilim
+            logger.warning("Exposure time %g > hilim (%g)" % (seconds, self.hilim))
+            seconds = self.hilim
         if seconds<self.lolim:
-           print "Warning: exposure time %g < lolim (%g)" % (seconds, self.lolim)
-           seconds = self.lolim
-        print "Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel)
+            logger.warning("Exposure time %g < lolim (%g)" % (seconds, self.lolim))
+            seconds = self.lolim
+        logger.info("Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel))
         return seconds
 
 class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
@@ -252,30 +255,30 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
 
 def do_bias(options):
     """Initialize a BiasTestCoordinator and take images."""
-    print "bias called {0}".format(options)
+    logger.info("bias called {0}".format(options))
     tc = BiasTestCoordinator(options)
     tc.take_images()
 
 def do_dark(options):
     """Initialize a DarkTestCoodrinator and take images."""
-    print "dark called {0}".format(options)
+    logger.info("dark called {0}".format(options))
     tc = DarkTestCoordinator(options)
     tc.take_images()
 
 def do_flat(options):
     """Initialize a FlatFieldTestCoordinator and take images."""
-    print "flat called {0}".format(options)
+    logger.info("flat called {0}".format(options))
     tc = FlatFieldTestCoordinator(options)
     tc.take_images()
    
 def do_persistence(options):
     """Initialize a PersistenceTestCoordinator and take images."""
-    print "Persistence called %s" % options
+    logger.info("Persistence called %s" % options)
     tc = PersistenceTestCoordinator(options)
     tc.take_images()
 
 def do_spot(options):
     """Initialize a SpotTestCoordinator and take images."""
-    print "spot called {0}".format(options)
+    logger.info("spot called {0}".format(options))
     tc = SpotTestCoordinator(options)
     tc.take_images()

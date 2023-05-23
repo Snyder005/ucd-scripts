@@ -1,19 +1,21 @@
 import ShutterConfig
 import time
+import logging
 
+logger = logging.getLogger(__name__)
 SHUTTERDELAY = 1.0
 
 def sanityCheck():
     
     status = ShutterConfig.status_shutter()
-    print status
+    logger.info(status)
 
 def openShutter(exposure):
 
     sanityCheck()
-    print "Open shutter for {0} seconds".format(exposure)
+    logger.info("Open shutter for {0} seconds".format(exposure))
     ShutterConfig.open_shutter()
     time.sleep(exposure)
     ShutterConfig.close_shutter()
     time.sleep(SHUTTERDELAY)
-    print "Shutter closed"
+    logger.info("Shutter closed")

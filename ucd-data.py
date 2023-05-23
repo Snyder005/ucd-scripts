@@ -9,6 +9,21 @@ from ccs import configs
 from java.time import Duration
 import config
 from optparse import OptionParser
+import logging
+import datetime
+
+today = datetime.date.today().strftime("%Y%m%d")
+
+## Set up logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+log_format = logging.Formatter("%(asctime)s %(funcname)s %(levelname)s: %(message)", 
+                               datefmt = "%Y-%m-%d %H:%M%S")
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(log_format)
+logger.addHandler(stream_handler)
 
 # Temporary work around for problems with CCS responsiveness
 CCS.setDefaultTimeout(Duration.ofSeconds(30))
@@ -28,6 +43,8 @@ if options.run:
     time.sleep(10.0)
     versions.write_versions(fp)
     configs.write_config(fp, ['Sequencer', 'Rafts'])
+
+print options.run
 
 cfg = config.parseConfig(args[0])
 config.execute(cfg, {"run": options.run})
