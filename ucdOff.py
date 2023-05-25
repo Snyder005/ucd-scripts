@@ -4,20 +4,23 @@ from org.lsst.ccs.scripting import CCS
 CCS.setThrowExceptions(True)
 fp = CCS.attachSubsystem("ucd-fp")
 
-## Turn off back bias relay
+## Get state of focal plane
 hvSwitchOn = fp.sendSynchCommand("R22/Reb0 isBackBiasOn")
+ccdState = fp.sendSynchCommand("R22/Reb0 getCCDsPowerState")
+
+#rewrite for all conditions
 if hvSwitchOn:
     print "Setting back bias switch off."
     fp.setSynchCommand("R22/Reb0 setBackBias false")
 
-## Check state of focal plane
-ccdState = fp.sendSynchCommand("R22/Reb0 getCCDsPowerState")
 if ccdState == 'OFF' and hvSwitchOn:
     raise RuntimeError("CCD is powered off but back bias switch was on!")
 elif ccdState == 'OFF' and not hvSwitchOn:
     raise RuntimeError("CCD is already powered off.")
 
-## Power CCD off
+## Double check state of focal plane
+
+## Power CCD Off
 fp.sendSynchCommand("R22/Reb0 powerCCDsOff")
 ccdState = fp.sendSynchCommand("R22/Reb0 getCCDsPowerState")
 if ccdState == 'ON':

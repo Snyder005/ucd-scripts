@@ -7,6 +7,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+TEST_SEQ_NUM = 0
+
 class TestCoordinator(object):
     """Base class for taking images.
 
@@ -87,6 +89,7 @@ class TestCoordinator(object):
         image_type : `str`
             Description of the image type.
         """
+        global TEST_SEQ_NUM
         image_type = image_type if image_type else self.image_type
 
         if self.extra_delay > 0:
@@ -94,8 +97,16 @@ class TestCoordinator(object):
             time.sleep(self.extra_delay)
 
         fits_header_data = self.create_fits_header_data(exposure, image_type)
-        file_list = fp.takeExposure(expose_command, fits_header_data, self.annotation, self.locations, self.clears)
-        print(file_list)
+        file_info = fp.takeExposure(expose_command, fits_header_data, self.annotation, self.locations, self.clears)
+        print(file_info, type(file_info))
+        if TEST_SEQ_NUM == 0:
+            if image_type == 'BIAS':
+                logger.info("Flush bias deleted.")
+            else:
+                logger.warning("No flush bias included.")
+
+        TEST_SEQ_NUM += 1
+
         return file_list
 
 class BiasTestCoordinator(TestCoordinator):

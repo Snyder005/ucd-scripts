@@ -15,36 +15,45 @@ import datetime
 today = datetime.date.today().strftime("%Y%m%d")
 
 ## Set up logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
-log_format = logging.Formatter("%(asctime)s %(funcname)s %(levelname)s: %(message)", 
-                               datefmt = "%Y-%m-%d %H:%M%S")
+log_format = logging.Formatter("%(asctime)s %(funcName)s %(levelname)s: %(message)s", 
+                               datefmt = "%Y-%m-%d %H:%M:%S")
 
-stream_handler = logging.StreamHandler()
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setLevel(logging.DEBUG)
 stream_handler.setFormatter(log_format)
 logger.addHandler(stream_handler)
+
+file_handler = logging.FileHandler('{0}_log.txt'.format(today))
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(log_format)
+logger.addHandler(file_handler)
 
 # Temporary work around for problems with CCS responsiveness
 CCS.setDefaultTimeout(Duration.ofSeconds(30))
 
-## Parse command line options 
-parser=OptionParser()
-parser.add_option("--run", dest="run")
+def main(cfgfile, run=None):
 
-(options, args) = parser.parse_args()
+    if run:
+        fp = CCS.attachProxy('ucd-fp')
+        time.sleep(10.0)
+        versions.write_versions(fp)
+        configs.write_config(fp, ['Sequencer', 'Rafts'])
 
-if len(args)!=1:
-  parser.print_help()
-  exit(1)
+    cfg = config.parserConfig(cfgfile)
+    config.execute(cfg, {"run" : run})
 
-if options.run:
-    fp = CCS.attachProxy('ucd-fp')
-    time.sleep(10.0)
-    versions.write_versions(fp)
-    configs.write_config(fp, ['Sequencer', 'Rafts'])
+if __name__ == '__main__':
 
-print options.run
+    parser = ArgumentParser(sys.argv[0])
+    parser.add_argument('cfgfile', type=str, help="Data acquisition config file.")
+    parser.add_argument('--run', type=str, default=None, help="Run number.")
 
-cfg = config.parseConfig(args[0])
-config.execute(cfg, {"run": options.run})
+    if len(sys.argv) == 1:
+        parser.print_help()
+        exit(1)
+
+    args = parser.parse_args()
+    main(args.cfgfile, args.run)
