@@ -15,6 +15,11 @@ import datetime
 # Temporary work around for problems with CCS responsiveness
 CCS.setDefaultTimeout(Duration.ofSeconds(30))
 
+class WarningFilter(object):
+
+    def filter(self, log_record): 
+        return log_record.levelno != logging.WARNING
+
 def main(cfgfile, run=None):
 
     ## Set up logging
@@ -24,14 +29,17 @@ def main(cfgfile, run=None):
     log_format = logging.Formatter("%(asctime)s %(levelname)s: %(message)s", 
                                    datefmt = "%Y-%m-%d %H:%M:%S")
 
+    ## Set up handler for command line
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setLevel(logging.DEBUG)
     stream_handler.setFormatter(log_format)
     logger.addHandler(stream_handler)
 
+    ## Set up handler for observing log
     today = datetime.date.today().strftime("%Y%m%d")
     file_handler = logging.FileHandler('{0}_log.txt'.format(today))
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(logging.INFO)
+    file_handler.addFilter(WarningFilter())
     file_handler.setFormatter(log_format)
     logger.addHandler(file_handler)
 
@@ -43,8 +51,11 @@ def main(cfgfile, run=None):
         configs.write_config(fp, ['Sequencer', 'Rafts'])
 
     ## Parse config file and execute data acquisition
-    cfg = config.parseConfig(cfgfile)
-    config.execute(cfg, {"run" : run})
+    try:
+        cfg = config.parseConfig(cfgfile)
+        config.execute(cfg, {"run" : run})
+    except Exception:
+        logger.exception("Fatal error occurred in data acquisition.")
 
 if __name__ == '__main__':
 

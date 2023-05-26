@@ -27,14 +27,14 @@ def clear(n=1):
 
     if n == 0:
         return
-    logger.info("Clearing CCDs {0:d}".format(n))
+    logger.debug("Clearing CCDs {0:d}".format(n))
     fp.clear(n)
     fp.waitForSequencer(Duration.ofSeconds(2))
 
 def takeExposure(exposeCommand=None, fitsHeaderData=None, annotation=None, locations=None, clears=1):
 
     sanityCheck()
-    logger.info("Setting Fits headers {0}".format(fitsHeaderData))
+    logger.debug("Setting Fits headers {0}".format(fitsHeaderData))
     fp.setHeaderKeywords(fitsHeaderData)
     clear(clears)
     fp.startIntegration(annotation, locations)
