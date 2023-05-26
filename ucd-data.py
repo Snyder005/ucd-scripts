@@ -8,7 +8,7 @@ from ccs import versions
 from ccs import configs
 from java.time import Duration
 import config
-from optparse import OptionParser
+from argparse import ArgumentParser
 import logging
 import datetime
 
@@ -21,7 +21,7 @@ def main(cfgfile, run=None):
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
-    log_format = logging.Formatter("%(asctime)s %(funcName)s %(levelname)s: %(message)s", 
+    log_format = logging.Formatter("%(asctime)s %(levelname)s: %(message)s", 
                                    datefmt = "%Y-%m-%d %H:%M:%S")
 
     stream_handler = logging.StreamHandler(sys.stdout)
@@ -43,7 +43,7 @@ def main(cfgfile, run=None):
         configs.write_config(fp, ['Sequencer', 'Rafts'])
 
     ## Parse config file and execute data acquisition
-    cfg = config.parserConfig(cfgfile)
+    cfg = config.parseConfig(cfgfile)
     config.execute(cfg, {"run" : run})
 
 if __name__ == '__main__':

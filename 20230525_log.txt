@@ -1,0 +1,47 @@
+2023-05-25 23:20:28 do_bias INFO: bias called {'annotation': 'Just R22/Reb0', 'count': '1', 'run': None, 'acqtype': 'BIAS', 'locations': 'R22/Reb0'}
+2023-05-25 23:20:28 sanityCheck WARNING: ucd-fp subsystem is in alert state ALARM
+2023-05-25 23:20:28 takeExposure INFO: Setting Fits headers {'TestType': 'BIAS', 'ImageType': 'BIAS', 'ExposureTime': 0}
+2023-05-25 23:20:28 clear INFO: Clearing CCDs 1
+2023-05-25 23:20:30 _TestCoordinator__take_image INFO: Flush bias deleted.
+2023-05-25 23:21:56 do_bias INFO: bias called {'annotation': 'Just R22/Reb0', 'count': '1', 'run': None, 'acqtype': 'BIAS', 'locations': 'R22/Reb0'}
+2023-05-25 23:21:57 sanityCheck WARNING: ucd-fp subsystem is in alert state ALARM
+2023-05-25 23:21:57 takeExposure INFO: Setting Fits headers {'TestType': 'BIAS', 'ImageType': 'BIAS', 'ExposureTime': 0}
+2023-05-25 23:21:57 clear INFO: Clearing CCDs 1
+2023-05-25 23:21:59 _TestCoordinator__take_image INFO: Flush bias deleted.
+2023-05-25 23:40:48 do_bias INFO: bias called {'annotation': 'Just R22/Reb0', 'count': '1', 'run': None, 'acqtype': 'BIAS', 'locations': 'R22/Reb0'}
+2023-05-25 23:40:48 sanityCheck WARNING: ucd-fp subsystem is in alert state ALARM
+2023-05-25 23:40:48 takeExposure INFO: Setting Fits headers {'TestType': 'BIAS', 'ImageType': 'BIAS', 'ExposureTime': 0}
+2023-05-25 23:40:48 clear INFO: Clearing CCDs 1
+2023-05-25 23:40:50 _TestCoordinator__take_image INFO: Flush bias deleted.
+2023-05-25 23:47:02 do_bias INFO: bias called {'annotation': 'Just R22/Reb0', 'count': '1', 'run': None, 'acqtype': 'BIAS', 'locations': 'R22/Reb0'}
+2023-05-25 23:47:02 sanityCheck WARNING: ucd-fp subsystem is in alert state ALARM
+2023-05-25 23:47:02 takeExposure INFO: Setting Fits headers {'TestType': 'BIAS', 'ImageType': 'BIAS', 'ExposureTime': 0}
+2023-05-25 23:47:02 clear INFO: Clearing CCDs 1
+2023-05-25 23:47:05 _TestCoordinator__take_image INFO: Flush bias deleted.
+2023-05-25 23:48:26 do_bias INFO: bias called {'annotation': 'Just R22/Reb0', 'count': '1', 'run': None, 'acqtype': 'BIAS', 'locations': 'R22/Reb0'}
+2023-05-25 23:48:26 sanityCheck WARNING: ucd-fp subsystem is in alert state ALARM
+2023-05-25 23:48:26 takeExposure INFO: Setting Fits headers {'TestType': 'BIAS', 'ImageType': 'BIAS', 'ExposureTime': 0}
+2023-05-25 23:48:26 clear INFO: Clearing CCDs 1
+2023-05-25 23:48:28 _TestCoordinator__take_image INFO: Flush bias deleted.
+2023-05-25 23:58:06 do_bias INFO: bias called {'annotation': 'Just R22/Reb0', 'count': '1', 'run': None, 'acqtype': 'BIAS', 'locations': 'R22/Reb0'}
+2023-05-25 23:58:06 sanityCheck WARNING: ucd-fp subsystem is in alert state ALARM
+2023-05-25 23:58:06 takeExposure INFO: Setting Fits headers {'TestType': 'BIAS', 'ImageType': 'BIAS', 'ExposureTime': 0}
+2023-05-25 23:58:06 clear INFO: Clearing CCDs 1
+2023-05-25 23:58:37 do_bias INFO: bias called {'annotation': 'Just R22/Reb0', 'count': '1', 'run': None, 'acqtype': 'BIAS', 'locations': 'R22/Reb0'}
+2023-05-25 23:58:37 sanityCheck WARNING: ucd-fp subsystem is in alert state ALARM
+2023-05-25 23:58:37 takeExposure INFO: Setting Fits headers {'TestType': 'BIAS', 'ImageType': 'BIAS', 'ExposureTime': 0}
+2023-05-25 23:58:37 clear INFO: Clearing CCDs 1
+2023-05-25 23:58:39 _TestCoordinator__take_image DEBUG: /mnt/10TBHDD/data/20230525/TS_C_20230525_000007_R22_S00.fits removed.
+2023-05-25 23:58:39 _TestCoordinator__take_image DEBUG: /mnt/10TBHDD/data/20230525/TS_C_20230525_000007_R22_S01.fits removed.
+2023-05-25 23:58:39 _TestCoordinator__take_image DEBUG: /mnt/10TBHDD/data/20230525/TS_C_20230525_000007_R22_S02.fits removed.
+2023-05-25 23:59:03 do_bias INFO: bias called {'annotation': 'Just R22/Reb0', 'count': '5', 'run': None, 'acqtype': 'BIAS', 'locations': 'R22/Reb0'}
+2023-05-25 23:59:03 sanityCheck WARNING: ucd-fp subsystem is in alert state ALARM
+2023-05-25 23:59:03 takeExposure INFO: Setting Fits headers {'TestType': 'BIAS', 'ImageType': 'BIAS', 'ExposureTime': 0}
+2023-05-25 23:59:03 clear INFO: Clearing CCDs 1
+2023-05-25 23:59:06 _TestCoordinator__take_image DEBUG: /mnt/10TBHDD/data/20230525/TS_C_20230525_000008_R22_S00.fits removed.
+2023-05-25 23:59:06 _TestCoordinator__take_image DEBUG: /mnt/10TBHDD/data/20230525/TS_C_20230525_000008_R22_S01.fits removed.
+2023-05-25 23:59:06 _TestCoordinator__take_image DEBUG: /mnt/10TBHDD/data/20230525/TS_C_20230525_000008_R22_S02.fits removed.
+2023-05-25 23:59:06 sanityCheck WARNING: ucd-fp subsystem is in alert state ALARM
+2023-05-25 23:59:06 takeExposure INFO: Setting Fits headers {'TestType': 'BIAS', 'ImageType': 'BIAS', 'ExposureTime': 0}
+2023-05-25 23:59:06 clear INFO: Clearing CCDs 1
+2023-05-25 23:59:08 _TestCoordinator__take_image DEBUG: /mnt/10TBHDD/data/20230525/TS_C_20230525_000009_R22_S00.fits removed.

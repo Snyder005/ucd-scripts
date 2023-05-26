@@ -1,9 +1,11 @@
+import os
 import time
 import fp
 from org.lsst.ccs.utilities.location import LocationSet
 import ucd_bench
 import ucd_stage
 import logging
+import JFitsUtils
 
 logger = logging.getLogger(__name__)
 
@@ -90,24 +92,35 @@ class TestCoordinator(object):
             Description of the image type.
         """
         global TEST_SEQ_NUM
+
         image_type = image_type if image_type else self.image_type
 
+        ## Wait for optional extra delay before image
         if self.extra_delay > 0:
             logger.info("Extra delay %g" % self.extra_delay)
             time.sleep(self.extra_delay)
 
         fits_header_data = self.create_fits_header_data(exposure, image_type)
         file_info = fp.takeExposure(expose_command, fits_header_data, self.annotation, self.locations, self.clears)
-        print(file_info, type(file_info))
-        if TEST_SEQ_NUM == 0:
-            if image_type == 'BIAS':
-                logger.info("Flush bias deleted.")
-            else:
-                logger.warning("No flush bias included.")
+
+        for f in file_info:
+
+            filepath = f.toString()
+
+            if filepath.endswith('S01.fits'):
+                if TEST_SEQ_NUM == 0 and image_type == 'BIAS':
+                    os.remove(filepath)
+                    logger.debug("{0} removed.".format(filepath))
+                else:
+                    JFitsUtils.reorder_hdus(filepath)
+                    logger.debug("{0} amplifiers reordered.".format(filepath))
+            elif filepath.endswith('S00.fits') or filepath.endswith('S02.fits'):
+                os.remove(filepath)
+                logger.debug("{0} removed.".format(filepath))
 
         TEST_SEQ_NUM += 1
 
-        return file_list
+        return file_info
 
 class BiasTestCoordinator(TestCoordinator):
     """A TestCoordinator for taking only bias images."""
