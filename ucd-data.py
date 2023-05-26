@@ -12,36 +12,37 @@ from optparse import OptionParser
 import logging
 import datetime
 
-today = datetime.date.today().strftime("%Y%m%d")
-
-## Set up logging
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-log_format = logging.Formatter("%(asctime)s %(funcName)s %(levelname)s: %(message)s", 
-                               datefmt = "%Y-%m-%d %H:%M:%S")
-
-stream_handler = logging.StreamHandler(sys.stdout)
-stream_handler.setLevel(logging.DEBUG)
-stream_handler.setFormatter(log_format)
-logger.addHandler(stream_handler)
-
-file_handler = logging.FileHandler('{0}_log.txt'.format(today))
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(log_format)
-logger.addHandler(file_handler)
-
 # Temporary work around for problems with CCS responsiveness
 CCS.setDefaultTimeout(Duration.ofSeconds(30))
 
 def main(cfgfile, run=None):
 
+    ## Set up logging
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+    log_format = logging.Formatter("%(asctime)s %(funcName)s %(levelname)s: %(message)s", 
+                                   datefmt = "%Y-%m-%d %H:%M:%S")
+
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setFormatter(log_format)
+    logger.addHandler(stream_handler)
+
+    today = datetime.date.today().strftime("%Y%m%d")
+    file_handler = logging.FileHandler('{0}_log.txt'.format(today))
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(log_format)
+    logger.addHandler(file_handler)
+
+    ## Write config versions to cwd
     if run:
         fp = CCS.attachProxy('ucd-fp')
         time.sleep(10.0)
         versions.write_versions(fp)
         configs.write_config(fp, ['Sequencer', 'Rafts'])
 
+    ## Parse config file and execute data acquisition
     cfg = config.parserConfig(cfgfile)
     config.execute(cfg, {"run" : run})
 

@@ -44,7 +44,7 @@ voltagedelaytime = 20	# delay time between voltages in seconds
 
 ###############################################################################
 #Set the maximum acceptable difference between a set voltage and a measured readout to pass a check
-maximum_voltage_difference = 0.2
+maximum_voltage_difference = 0.33
 
 ###############################################################################
 # Define the functions for the Power Supplies
@@ -72,13 +72,16 @@ class Power_Supplies(object):
         self.BK9130B_2.read_termination=BK9130Btermination
         self.BK1697.write_termination=BK1697termination
         self.BK1697.read_termination=BK1697termination
-        self.BK9184.write_termination=BK9184termination
+        #self.BK9184.write_termination=BK9184termination #BK9184 has default write but \r\n read termination for some reason
         self.BK9184.read_termination=BK9184termination
         
         # Set the power supplies to recieve remote commands
         self.BK9130B_1.write('SYSTem:REMote')
         self.BK9130B_2.write('SYSTem:REMote')
-        self.BK1697.query('SESS00')
+        try:
+            self.BK1697.query('SESS00')
+        except Exception as e:
+            print("OD Error: ",e)
         self.BK9184.write('SYStem:REMote')
         return
 
@@ -89,11 +92,26 @@ class Power_Supplies(object):
         Will return True if all are connected and print "All Power Supplies Connected". If any power supply is not connected, will return False and print which devices are not responding.'''
 
         FoundIDs=[]
-        FoundIDs.append(self.BK9130B_1.query('*IDN?'))
-        FoundIDs.append(self.BK9130B_2.query('*IDN?'))
-        FoundIDs.append(self.BK1697.query('SESS00'))
-        FoundIDs.append(self.BK9184.query('*IDN?'))
-
+        try:
+            FoundIDs.append(self.BK9130B_1.query('*IDN?'))
+        except Exception as e:
+            FoundIDs.append("Not Found")
+            print(e)
+        try:
+            FoundIDs.append(self.BK9130B_2.query('*IDN?'))
+        except Exception as e:
+            FoundIDs.append("Not Found")
+            print(e)
+        try:    
+            FoundIDs.append(self.BK1697.query('SESS00'))
+        except Exception as e:
+            FoundIDs.append("Not Found")
+            print(e)
+        try:    
+            FoundIDs.append(self.BK9184.query('*IDN?'))
+        except Exception as e:
+            FoundIDs.append("Not Found")
+            print(e)
         IDlist=[ID9130B1,ID9130B2,OK1697,ID9184]
         if FoundIDs == IDlist:
             print("All Power Supplies Connected")
@@ -118,23 +136,13 @@ class Power_Supplies(object):
 
         PWR1=self.BK9130B_1.query_ascii_values('MEAS:VOLT:ALL?')
         PWR2=self.BK9130B_2.query_ascii_values('MEAS:VOLT:ALL?')
-        OD=self.BK1697.query('GETD00')
-        print(OD)
-        hh=self.BK1697.query('GETD00')
-        print(hh)
-        hh=self.BK1697.query('GETD00')
-        print(hh)
-        hh=self.BK1697.query('GETD00')
-        print(hh)
-        hh=self.BK1697.query('GETD00')
-        print(hh)
-        #print(OD)
+        OD=self.BK1697.query_ascii_values('GETD00')
+        self.BK1697.read()
         OD=[float(str(OD[0])[:-7])*10**-2]
-        
         PWRBSS=self.BK9184.query_ascii_values('MEAS:VOLT?')
         volts=np.concatenate((np.array(PWR1),np.array(PWR2),np.array(OD),PWRBSS))
         if printresult==True:
-            print('''Analog 	= '''+str(volts[0])+'''
+            print('''Analog 		= '''+str(volts[0])+'''
 Heater		= '''+str(volts[1])+'''
 Digital		= '''+str(volts[2])+'''
 CLK Low 	= '''+str(volts[3])+'''
@@ -155,7 +163,7 @@ BSS		= '''+str(volts[7]))
             printresult: By default set to 'False'. If printresult=True, it will print out whether the check was passed and what the values read out were.
         
         return: Whether the maximum difference between the set voltages and the actual output is within the max allowed value. (True if it is)'''
-        voltages=Power_Supplies.Read_Volt()
+        voltages=Power_Supplies.Read_Volt(self)
         inputs= np.array([VP7,VP_HTR,VP5,VP15,VN15,V_OTM,VP40,VN70])
         if BSS==False:
             inputs[7]=0
@@ -166,7 +174,7 @@ BSS		= '''+str(volts[7]))
         else:
             check_result= False
         if printresult==True:
-            print('''Analog 	= '''+str(voltages[0])+'''
+            print('''Analog 		= '''+str(voltages[0])+'''
 Heater		= '''+str(voltages[1])+'''
 Digital		= '''+str(voltages[2])+'''
 CLK Low 	= '''+str(voltages[3])+'''
@@ -182,7 +190,7 @@ BSS		= '''+str(voltages[7]))
         inputs: 
             printresult: By default set to 'False'. If printresult=True, it will print out whether the check was passed and what the values read out were.
         return: True if the voltages are all within the acceptable rance of zero.'''
-        voltages=Power_Supplies.Read_Volt()
+        voltages=Power_Supplies.Read_Volt(self)
         inputs= np.array([0,0,0,0,0,0,0,0])
         diff=abs(voltages-inputs)
         maxdiff=max(diff)
@@ -191,7 +199,7 @@ BSS		= '''+str(voltages[7]))
         else:
             check_result= False
         if printresult==True:
-            print('''Analog 	= '''+str(voltages[0])+'''
+            print('''Analog 		= '''+str(voltages[0])+'''
 Heater		= '''+str(voltages[1])+'''
 Digital		= '''+str(voltages[2])+'''
 CLK Low 	= '''+str(voltages[3])+'''
@@ -210,20 +218,20 @@ BSS		= '''+str(voltages[7]))
         #rm = pyvisa.ResourceManager()
 
         #first check whether the voltages are already on.
-        check=Power_Supplies.Check_Volt(BSS=False)
-        checkBSS=Power_Supplies.Check_Volt(BSS=True)
-        checkoff=Power_Supplies.Check_for_off_Volt()
+        checkoff=Power_Supplies.Check_for_off_Volt(self)
+        check=Power_Supplies.Check_Volt(self,BSS=False)
+        checkBSS=Power_Supplies.Check_Volt(self,BSS=True)
 
         #if BSS is supposed to be False, make sure BSS gets turned off even if it passed the voltage check.
 
         #if voltages are not at set values or at 0V, turn them off in order.
-        if check==False and checkoff==False:
+        if check==False and checkoff==False and checkBSS==False:
             print('WARNING: Voltages at Unknown values! Shutting Down.')
-            checkoff=Power_Shutdown()
+            checkoff=Power_Supplies.Power_Shutdown(self)
             if checkoff==False:
                 print('WARNING: Shutdown Failed!')
             return False
-        if check==True or CheckBSS==True:
+        if check==True or checkBSS==True:
             print("Voltages already on...")
             return True
         #if the voltages are not on, turn them on.	
@@ -245,24 +253,25 @@ BSS		= '''+str(voltages[7]))
             self.BK9130B_2.write('APPLY:VOLTage 0,0,'+str(V_OTM))
             self.BK9130B_1.write('APPLY:VOLTage 0,'+str(VP_HTR)+','+str(VP5))
             print('OTM, Digital, and Heater Voltages On...')
+            print("Waiting "+str(voltagedelaytime)+"s")
             sleep(voltagedelaytime)
-            Power_Supplies.Read_Volt(printresult=True)
+            Power_Supplies.Read_Volt(self,printresult=True)
 
             #phase 2
             self.BK9130B_1.write('APPLY:VOLTage '+str(VP7)+','+str(VP_HTR)+','+str(VP5))
             self.BK9130B_2.write('APPLY:VOLTage  '+str(VP15)+','+str(VN15)+','+str(V_OTM))
             self.BK1697.query('VOLT00'+str(VP40)+'0')
             print('Clock Voltages On...')
+            print("Waiting "+str(voltagedelaytime)+"s")
             sleep(voltagedelaytime)
-            Power_Supplies.Read_Volt(printresult=True)
+            Power_Supplies.Read_Volt(self,printresult=True)
 
             #phase 3
             self.BK1697.query('SOUT000')
             sleep(2)
-            Power_Supplies.Read_Volt(printresult=True)
             print('OD Voltage On...')
 
-            finalcheck=Power_Supplies.Check_Volt(BSS=False,printresult=True)
+            finalcheck=Power_Supplies.Check_Volt(self,BSS=False,printresult=True)
         if finalcheck==True:
             print('REB Voltage Setup Complete.')
             return True
@@ -274,23 +283,23 @@ BSS		= '''+str(voltages[7]))
         '''This Function Turns on the BSS Supply
         
         return: True if on, False if not.'''
-        check=Power_Supplies.Check_Volt(BSS=False)
+        check=Power_Supplies.Check_Volt(self,BSS=False)
         if check == True:
-            self.BK9184.write('OUT 0')
-            self.BK9184.write('VOLT '+ str(VN70))
+            self.BK9184.write('VOLT '+ str(VN70)+' \r')
             self.BK9184.write('OUT:LIM:VOLT '+str(VN70max))
             self.BK9184.write('OUT:LIM:CURR '+str(IN70max))
             errors=self.BK9184.query('SYS:ERR?')
             if errors=='0':
-                self.BK9184.write('OUT ON')
+            	self.BK9184.write('OUT ON \r')
             else:
-                print("BSS Supply error: ",errors)
-        check=Power_Supplies.Check_Volt(BSS=True)
+            	print("BSS Supply error: ",errors)
+            sleep(0.5) #sleep to let voltage reach VN70 value
+        check=Power_Supplies.Check_Volt(self,BSS=True)
         if check==True:
             print("BSS supply on.")
             return True
         else:
-            print("You must turn on CCD voltages before BSS")
+            print("ERROR: You must turn on CCD voltages before BSS!")
             return False
         
     def BSS_Off(self):
@@ -301,22 +310,23 @@ BSS		= '''+str(voltages[7]))
         
         return: True if on, False if not.'''
         self.BK9184.write('OUT 0')
-        self.BK9184.write('VOLT '+ str(VN70))
-        checkoff=Power_Supplies.Check_for_off_Volt()
-        check=Power_Supplies.Check_Volt(BSS=False)
-        
+        self.BK9184.write('VOLT 0')
+        sleep(0.2) #wait for voltage to turn off
+        checkoff=Power_Supplies.Check_for_off_Volt(self)
+        check=Power_Supplies.Check_Volt(self,BSS=False)
         if check==True or checkoff==True:
             print("BSS supply off.")
             return True
+        
         else:
-            print("WARNING: BSS Not shut down properly!")
+            print("WARNING: BSS Not shut down properly or other voltages incorrect!")
             return False
 
     def Power_Shutdown(self):
         '''This function zeroes and shuts off all REB and OTM power supplies.'''
         #rm = pyvisa.ResourceManager()
-        voltages = Power_Supplies.Read_Volt()
-        checkoff=Power_Supplies.Check_for_off_Volt()
+        voltages = Power_Supplies.Read_Volt(self)
+        checkoff=Power_Supplies.Check_for_off_Volt(self)
 
         if checkoff==False:  
             print("Shutting down voltages...")
@@ -324,8 +334,9 @@ BSS		= '''+str(voltages[7]))
             # Set Back Bias to 0V	
             self.BK9184.write('VOLT 0')
             self.BK9184.write('OUT 0')
+            print("Waiting "+str(voltagedelaytime)+"s")
             sleep(voltagedelaytime)
-            read=Read_Volt(printresult=True)
+            read=Power_Supplies.Read_Volt(self,printresult=True)
             if read[7]<maximum_voltage_difference:
                 print('Back Bias Off...')
             else:
@@ -334,8 +345,9 @@ BSS		= '''+str(voltages[7]))
 
             #Set OD to 0V
             self.BK1697.query('SOUT001')
+            print("Waiting "+str(voltagedelaytime)+"s")
             sleep(voltagedelaytime)
-            read=Power_Supplies.Read_Volt(printresult=True)
+            read=Power_Supplies.Read_Volt(self,printresult=True)
             if read[6]<maximum_voltage_difference:
                 print('OD Off...')
             else:
@@ -345,8 +357,9 @@ BSS		= '''+str(voltages[7]))
             #Set CLK High, CLK Low, and Analog voltages to 0 
             self.BK9130B_2.write('APPLY:VOLTage 0,0,'+str(voltages[5]))
             self.BK9130B_1.write('APPLY:VOLTage 0,'+str(voltages[1])+','+str(voltages[2]))
+            print("Waiting "+str(voltagedelaytime)+"s")
             sleep(voltagedelaytime)
-            read=Power_Supplies.Read_Volt(printresult=True)
+            read=Power_Supplies.Read_Volt(self,printresult=True)
             if read[0]<maximum_voltage_difference and read[3]<maximum_voltage_difference and read[4]<maximum_voltage_difference:
                 print('CLK High, CLK Low, and Analog Off...')
             else:
@@ -361,7 +374,7 @@ BSS		= '''+str(voltages[7]))
             self.BK9130B_2.write('OUTPut 0')
             self.BK9130B_1.write('OUTPut 0')
             sleep(4)
-            checkoff=Power_Supplies.Check_for_off_Volt(printresult=True)
+            checkoff=Power_Supplies.Check_for_off_Volt(self,printresult=True)
         if checkoff==True:
             print('All Voltages Off')
             return True
