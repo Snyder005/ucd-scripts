@@ -1,16 +1,19 @@
 #!/usr/bin/env ccs-script
 import sys
 import time
+import os
+import logging
+import datetime
+from argparse import ArgumentParser
+from java.time import Duration
+
 from org.lsst.ccs.scripting import CCS
+
 from ccs import aliases
 from ccs import proxies
 from ccs import versions
 from ccs import configs
-from java.time import Duration
 import config
-from argparse import ArgumentParser
-import logging
-import datetime
 
 # Temporary work around for problems with CCS responsiveness
 CCS.setDefaultTimeout(Duration.ofSeconds(30))
@@ -35,13 +38,20 @@ def main(cfgfile, run=None):
     stream_handler.setFormatter(log_format)
     logger.addHandler(stream_handler)
 
-    ## Set up handler for observing log
+    ## Set up handler for daily observing log file
     today = datetime.date.today().strftime("%Y%m%d")
-    file_handler = logging.FileHandler('{0}_log.txt'.format(today))
-    file_handler.setLevel(logging.INFO)
-    file_handler.addFilter(WarningFilter())
-    file_handler.setFormatter(log_format)
-    logger.addHandler(file_handler)
+    obsfile_handler = logging.FileHandler('{0}_log.txt'.format(today))
+    obsfile_handler.setLevel(logging.INFO)
+    obsfile_handler.addFilter(WarningFilter())
+    obsfile_handler.setFormatter(log_format)
+    logger.addHandler(obsfile_handler)
+
+    ## Set up handler for global log file
+    homedir = os.path.expanduser('~')
+    globalfile_handler = logging.FileHandler(os.path.join(homedir, 'data_acquisition.log'))
+    globalfile_handler.setLevel(logging.DEBUG)
+    globalfile_handler.setFormatter(log_format)
+    logger.addHandler(globalfile_handler)
 
     ## Write config versions to cwd
     if run:
