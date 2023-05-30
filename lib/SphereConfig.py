@@ -7,7 +7,11 @@
 #This code was largely written by Craig Lage for the Storm data aquisition system. It was edited and repurposed for the Viscacha REB5 system
 # 2023 Daniel Polin
 
-import math, time, sys, socket
+import math
+import time
+import sys
+import socket
+import logging
 
 class Sphere(object):
 
@@ -34,12 +38,10 @@ class Sphere(object):
         self.Tolerance = 0.05 # Checks that settings are equal to what was requested 
                          # within this tolerance.
         self.light_intensity = 0.0
-                         
-        return
 
     def initialize_light_socket(self):
-        """ Initializes the light socket over Ethernet"""
-        for NumTries in range(3):
+        """Initializes the light socket over Ethernet."""
+        for numTries in range(3):
             try:
                 self.light_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    
                 self.light_socket.connect((self.light_IP, self.light_tcp_portnum))
@@ -57,7 +59,6 @@ class Sphere(object):
         try:
             self.light_socket.close()
             print("Successfully closed Light Socket\n")
-            return
         except Exception as e:
             print("Failure to close light socket. Exception of type %s and args = \n"%type(e).__name__, e.args)    
             return
