@@ -40,7 +40,7 @@ def main(cfgfile, run=None):
 
     ## Set up handler for daily observing log file
     today = datetime.date.today().strftime("%Y%m%d")
-    obsfile_handler = logging.FileHandler('{0}_log.txt'.format(today))
+    obsfile_handler = logging.FileHandler('{0}_acquisition.log'.format(today))
     obsfile_handler.setLevel(logging.INFO)
     obsfile_handler.addFilter(WarningFilter())
     obsfile_handler.setFormatter(log_format)

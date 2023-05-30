@@ -8,14 +8,14 @@ SHUTTERDELAY = 1.0
 def sanityCheck():
     
     status = ShutterConfig.status_shutter()
-    logger.info(status)
+    logger.debug(status)
 
 def openShutter(exposure):
 
     sanityCheck()
-    logger.info("Open shutter for {0} seconds".format(exposure))
+    logger.debug("Open shutter for {0} seconds".format(exposure))
     ShutterConfig.open_shutter()
     time.sleep(exposure)
     ShutterConfig.close_shutter()
     time.sleep(SHUTTERDELAY)
-    logger.info("Shutter closed")
+    logger.debug("Shutter closed")

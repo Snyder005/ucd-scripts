@@ -7,7 +7,7 @@
 #This code was largely written by Craig Lage for the Storm data aquisition system. It was edited and repurposed for the Viscacha REB5 system
 # 2023 Daniel Polin
 
-import numpy, time, sys, serial, socket
+import math, time, sys, socket
 
 class Sphere(object):
 
@@ -70,9 +70,9 @@ class Sphere(object):
                 self.shutter_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.shutter_socket.connect((self.VA_TCP_IP, self.VA_TCP_PORT))
                 for (Name,Value) in self.Value_list:
-                    self.shutter_socket.send(bytes("%s\r"%(Name+Value), encoding='utf8'))
+                    self.shutter_socket.send(bytes("%s\r"%(Name+Value)))
                     time.sleep(0.1)
-                    self.shutter_socket.send(bytes("%s\r"%(Name), encoding='utf8'))
+                    self.shutter_socket.send(bytes("%s\r"%(Name)))
                     buff=(self.shutter_socket.recv(self.VA_BUFFER_SIZE))
                     buff=buff.decode()
                     buff= buff.split('=')[1]
@@ -131,7 +131,7 @@ class Sphere(object):
     def turn_light_on(self):
         # Turns the light on
         print("Turning light on - 4 second delay for stabilization.")
-        self.light_socket.send(bytes("PS2~1\r", encoding='utf8'))
+        self.light_socket.send(bytes("PS2~1\r"))
         time.sleep(4)
         self.read_photodiode()
         return
@@ -139,7 +139,7 @@ class Sphere(object):
     def turn_light_off(self):
         # Turns the light off
         print("Turning light off - 8 second delay for stabilization.")
-        self.light_socket.send(bytes("PS2~0\r", encoding='utf8'))
+        self.light_socket.send(bytes("PS2~0\r"))
         time.sleep(8)
         self.read_photodiode()
         return
@@ -154,42 +154,42 @@ class Sphere(object):
         # Moves the shutter to a value specified by a Move_value
         # Move_value is a number of stepper motor pulses
         # 12000 = open all the way
-            self.shutter_socket.send(b"DL\r")
-            buff=(self.shutter_socket.recv(self.VA_BUFFER_SIZE))
-            buff=buff.decode()
-            buff= buff.split('=')[1]
-            DL_Status = float(buff)
-            if DL_Status != 1.0:
-                    print("DL value not equal to 1. Failed shutter move. Exiting.")
-                    sys.exit()
-            print("DL_Status = ",DL_Status)
+        self.shutter_socket.send(b"DL\r")
+        buff=(self.shutter_socket.recv(self.VA_BUFFER_SIZE))
+        buff=buff.decode()
+        buff= buff.split('=')[1]
+        DL_Status = float(buff)
+        if DL_Status != 1.0:
+                print("DL value not equal to 1. Failed shutter move. Exiting.")
+                sys.exit()
+        print("DL_Status = ",DL_Status)
 
-            self.shutter_socket.send(bytes("%s\r"%('DI'+str(Move_value)), encoding='utf8'))
-            self.shutter_socket.send(b"FL\r")
+        self.shutter_socket.send(bytes("%s\r"%('DI'+str(Move_value))))
+        self.shutter_socket.send(b"FL\r")
 
-            Move_Success = False
-            for NumTries in range(20):
-                    time.sleep(2)
-                    self.shutter_socket.send(b"RS\r")
-                    Status = self.shutter_socket.recv(self.VA_BUFFER_SIZE)
-                    print("Status = ", Status.decode())
-                    if Status == b'R\r':
-                            Move_Success = True
-                            break
-            self.shutter_socket.send(b"RV\r")
-            buff=(self.shutter_socket.recv(self.VA_BUFFER_SIZE))
-            buff=buff.decode()
-            buff= buff.split('=')[1]
-            RV_Status = int(buff)
-            if RV_Status != 223:
-                    print("RV value not equal to 223. Failed shutter move. Exiting.")
-                    sys.exit()
-            if Move_Success:
-                    print("Successfully moved shutter as requested")
-            else:
-                    print("Number of status tests exceeded.  Failed shutter move. Exiting.")
-                    sys.exit()
-            return
+        Move_Success = False
+        for NumTries in range(20):
+                time.sleep(2)
+                self.shutter_socket.send(b"RS\r")
+                Status = self.shutter_socket.recv(self.VA_BUFFER_SIZE)
+                print("Status = ", Status.decode())
+                if Status == b'R\r':
+                        Move_Success = True
+                        break
+        self.shutter_socket.send(b"RV\r")
+        buff=(self.shutter_socket.recv(self.VA_BUFFER_SIZE))
+        buff=buff.decode()
+        buff= buff.split('=')[1]
+        RV_Status = int(buff)
+        if RV_Status != 223:
+                print("RV value not equal to 223. Failed shutter move. Exiting.")
+                sys.exit()
+        if Move_Success:
+                print("Successfully moved shutter as requested")
+        else:
+                print("Number of status tests exceeded.  Failed shutter move. Exiting.")
+                sys.exit()
+        return
 
     def va_calculate_shutter_position(self, light_intensity):
         """ Calculates the required shutter position (in %) to give the desired light intensity (in %).
@@ -200,16 +200,15 @@ class Sphere(object):
         D = -3.25073115
         Ap = A / (A + B)
         Bp = B / (A + B)
-        s = (numpy.arctanh((light_intensity / 100.0 - Ap) / Bp) - D) / C
 
         if light_intensity < 1.0:
             print("Light intensity not accurate for intensities < 1%.\n")
-            return s
-        elif light_intensity >99:
+        elif light_intensity > 99:
             print("Light intensity not accurate for intensities >99%.  Opening shutter all the way.\n")
             return 100.0
-        else:
-            return s
+ 
+        s = (math.atanh((light_intensity / 100.0 - Ap) / Bp) - D) / C
+        return s
 
     def va_set_light_intensity(self, light_intensity):
         """ Opens the shutter a specified amount given the input light intensity value.  Assumes 0.0 < Value < 100."""
@@ -230,7 +229,7 @@ class Sphere(object):
         # This opens the shutter the requested amount
         time.sleep(0.5)
         self.light_intensity=light_intensity
-        self.Read_Photodiode()
+        self.read_photodiode()
         return
 
     def read_photodiode(self):
@@ -239,8 +238,8 @@ class Sphere(object):
         dummy_val = self.light_socket.recv(100)
         time.sleep(0.2)
         self.light_socket.send(b"D\r")
-        self.diode_current = float(self.light_socket.recv(100))
-        diode_out=(str(self.diode_current))
+        self.diode_current = self.light_socket.recv(100)
+        diode_out=(str(self.diode_current).rstrip('\r'))
         time.sleep(0.1)
         print("Light Intensity "+diode_out+"Amperes")
         return diode_out

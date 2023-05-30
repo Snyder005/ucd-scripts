@@ -34,7 +34,7 @@ class TestCoordinator(object):
         self.extra_delay = options.getFloat('extradelay', 0)
         self.description = options.get('description', None)
 
-        logger.info("{0} Test Description: {1}".format(self.test_type, self.description"))
+        logger.info("{0} Test Description: {1}".format(self.test_type, self.description))
         logger.info("Clears: {0}, Extra Delay: {1:.1f} sec".format(self.clears,self.extra_delay))
 
     def take_images(self):
@@ -115,7 +115,7 @@ class TestCoordinator(object):
                 if TEST_SEQ_NUM == 0 and image_type == 'BIAS':
                     os.remove(filepath)
                     logger.debug("{0} removed.".format(filepath))
-                    logger.info("Flush bias removed. Filepath: {0}".format(filepath))
+                    logger.info("Flush bias removed")
                 else:
                     JFitsUtils.reorder_hdus(filepath)
                     logger.debug("{0} amplifiers reordered.".format(filepath))
@@ -168,6 +168,7 @@ class DarkTestCoordinator(BiasPlusImagesTestCoordinator):
             integration, count = dark.split()
             integration = float(integration)
             count = int(count)
+            logger.info("Count: {0}, Integration Time {1:.1f} sec".format(count, integration))
             expose_command = lambda: time.sleep(integration)
 
             for c in range(count):
@@ -193,6 +194,7 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
             e_per_pixel = float(e_per_pixel)
             exposure = self.compute_exposure_time(e_per_pixel)
             count = int(count)
+            logger.info("Count: {0}, Target Signal: {1}".format(count, e_per_pixel))
             expose_command = lambda : ucd_bench.openShutter(exposure)
 
             for c in range(count):
@@ -248,7 +250,7 @@ class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
         if seconds<self.lolim:
             logger.warning("Exposure time %g < lolim (%g)" % (seconds, self.lolim))
             seconds = self.lolim
-        logger.info("Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel))
+        logger.debug("Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel))
         return seconds
 
 class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
@@ -293,19 +295,16 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
 
 def do_bias(options):
     """Initialize a BiasTestCoordinator and take images."""
-    logger.info("bias called {0}".format(options))
     tc = BiasTestCoordinator(options)
     tc.take_images()
 
 def do_dark(options):
     """Initialize a DarkTestCoodrinator and take images."""
-    logger.info("dark called {0}".format(options))
     tc = DarkTestCoordinator(options)
     tc.take_images()
 
 def do_flat(options):
     """Initialize a FlatFieldTestCoordinator and take images."""
-    logger.info("flat called {0}".format(options))
     tc = FlatFieldTestCoordinator(options)
     tc.take_images()
    

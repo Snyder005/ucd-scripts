@@ -49,7 +49,7 @@ def execute(config, command_line_options):
     else:
         description = None
     logger.info("Acquisition Description: {0}".format(description))
-    logger.info("Run Number: {0}".format(command_line_options.get("run", default=None)))
+    logger.info("Run Number: {0}".format(command_line_options.get("run", None)))
 
     ## Get data acquisition items
     items = config.options("ACQUIRE")
