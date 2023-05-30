@@ -1,4 +1,4 @@
-#!/usr/bin/env ccs-script
+#/usr/bin/env ccs-script
 import sys
 import time
 import os
@@ -39,8 +39,10 @@ def main(cfgfile, run=None):
     logger.addHandler(stream_handler)
 
     ## Set up handler for daily observing log file
+    ih = CCS.attachSubsystem("ucd-ih")
+    rootdir = ih.sendSynchCommand("getConfigurationParameterValue imageHandler/ImageHandlingConfig FITSRootDirectory")
     today = datetime.date.today().strftime("%Y%m%d")
-    obsfile_handler = logging.FileHandler('{0}_acquisition.log'.format(today))
+    obsfile_handler = logging.FileHandler(os.join(rootdir, today, '{0}_acquisition.log'.format(today))
     obsfile_handler.setLevel(logging.INFO)
     obsfile_handler.addFilter(WarningFilter())
     obsfile_handler.setFormatter(log_format)
