@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env ccs-script
 
 #LABSPHERE LIGHT CONFIG AND FUNCTION FILE
 
@@ -8,7 +8,6 @@
 # 2023 Daniel Polin
 #
 #Additional edits made by Adam Snyder to adapt for usage outside of a GUI environment.
-
 import math
 import time
 import sys

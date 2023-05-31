@@ -11,6 +11,7 @@ import SphereConfig
 logger = logging.getLogger(__name__)
 
 TEST_SEQ_NUM = 0
+sphere = SphereConfig.Sphere()
 
 class TestCoordinator(object):
     """Base class for taking images.
@@ -36,7 +37,6 @@ class TestCoordinator(object):
         self.description = options.get('description', None)
 
         logger.info("{0} Test Description: {1}".format(self.test_type, self.description))
-        logger.info("Clears: {0}, Extra Delay: {1:.1f} sec".format(self.clears,self.extra_delay))
 
     def take_images(self):
         raise NotImplementedError
@@ -116,11 +116,11 @@ class TestCoordinator(object):
                 if TEST_SEQ_NUM == 0 and image_type == 'BIAS':
                     os.remove(filepath)
                     logger.debug("{0} removed.".format(filepath))
-                    logger.info("Flush bias removed")
+                    logger.info("Flush bias removed: {0}".format(filepath))
                 else:
                     JFitsUtils.reorder_hdus(filepath)
                     logger.debug("{0} amplifiers reordered.".format(filepath))
-                    logger.info("Image Type: {0}, Exposure Time: {1:.1f}, File Path: {2}".format(image_type, exposure, filepath))
+                    logger.info("Image Type: {0}, File Path: {2}".format(image_type, filepath))
             elif filepath.endswith('S00.fits') or filepath.endswith('S02.fits'):
                 os.remove(filepath)
                 logger.debug("{0} removed.".format(filepath))
@@ -135,7 +135,7 @@ class BiasTestCoordinator(TestCoordinator):
     def __init__(self, options):
         super(BiasTestCoordinator, self).__init__(options, 'BIAS', 'BIAS')
         self.count = options.getInt('count', 10)
-
+        sphere.turn_light_off()
         logger.info("Count: {0}".format(self.count))
 
     def take_images(self):
@@ -160,8 +160,8 @@ class DarkTestCoordinator(BiasPlusImagesTestCoordinator):
     def __init__(self, options):
         super(DarkTestCoordinator, self).__init__(options, 'DARK', 'DARK')
         self.darks = options.getList('dark')
-
-        logger.info("Bias Count: {0}".format(self.bcount))
+        sphere.turn_light_off()
+        logger.info("Bias per Dark Count: {0}".format(self.bcount))
 
     def take_images(self):
         """Take multiple dark images."""
@@ -169,7 +169,7 @@ class DarkTestCoordinator(BiasPlusImagesTestCoordinator):
             integration, count = dark.split()
             integration = float(integration)
             count = int(count)
-            logger.info("Count: {0}, Integration Time {1:.1f} sec".format(count, integration))
+            logger.info("Dark Count: {0}, Integration Time {1:.1f} sec".format(count, integration))
             expose_command = lambda: time.sleep(integration)
 
             for c in range(count):
@@ -185,22 +185,21 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         self.hilim = options.getFloat('hilim', 999.0)
         self.lolim = options.getFloat('lolim', 1.0)
         self.signalpersec = float(options.get('signalpersec'))
-        self.sphere = SphereConfig.Sphere()
-        self.sphere.initialize_light_socket()
-        self.sphere.initialize_shutter_socket()
+        sphere.turn_light_on()
 
-        logger.info("Filter: {0}, Bias Count: {1}".format(self.wl_filter, self.bcount))
+        logger.info("Bias per Flat Count: {1}".format(self.bcount))
 
     def take_images(self):
         """Take multiple flat field images."""
         for flat in self.flats:
-            e_per_pixel, count = flat.split()
+            e_per_pixel, count, intensity = flat.split()
             e_per_pixel = float(e_per_pixel)
             exposure = self.compute_exposure_time(e_per_pixel)
-            current = self.sphere.read_photodiode()
+            sphere.set_light_intensity(intensity)
+            current = sphere.read_photodiode()
             count = int(count)
             logger.info("Count: {0}, Target Signal: {1}".format(count, e_per_pixel))
-            logger.info("Photodiode: {0}".format(current))
+            logger.debug("Photodiode: {0}".format(current))
             expose_command = lambda : ucd_bench.openShutter(exposure)
 
             for c in range(count):
