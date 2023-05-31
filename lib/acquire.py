@@ -6,6 +6,7 @@ import ucd_bench
 import ucd_stage
 import logging
 import JFitsUtils
+import SphereConfig
 
 logger = logging.getLogger(__name__)
 
@@ -184,6 +185,9 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         self.hilim = options.getFloat('hilim', 999.0)
         self.lolim = options.getFloat('lolim', 1.0)
         self.signalpersec = float(options.get('signalpersec'))
+        self.sphere = SphereConfig.Sphere()
+        self.sphere.initialize_light_socket()
+        self.sphere.initialize_shutter_socket()
 
         logger.info("Filter: {0}, Bias Count: {1}".format(self.wl_filter, self.bcount))
 
@@ -193,8 +197,10 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
             e_per_pixel, count = flat.split()
             e_per_pixel = float(e_per_pixel)
             exposure = self.compute_exposure_time(e_per_pixel)
+            current = self.sphere.read_photodiode()
             count = int(count)
             logger.info("Count: {0}, Target Signal: {1}".format(count, e_per_pixel))
+            logger.info("Photodiode: {0}".format(current))
             expose_command = lambda : ucd_bench.openShutter(exposure)
 
             for c in range(count):

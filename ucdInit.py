@@ -5,19 +5,6 @@ from java.time import Duration
 CCS.setThrowExceptions(True)
 fp = CCS.attachSubsystem("ucd-fp")
 
-## Check state of focal plane
-hvSwitchOn = fp.sendSynchCommand("R22/Reb0 isBackBiasOn")
-ccdState = fp.sendSynchCommand("R22/Reb0 getCCDsPowerState")
-
-if hvSwitchOn and ccdState == 'ON':
-    raise RuntimeError("CCD is already powered on. Back Bias relay is on.")
-elif not hvSwitchOn and ccdState == 'ON':
-    raise RuntimeError("CCD is already powered on. Back Bias relay is off.")
-elif hvSwitchOn and ccdState == 'OFF:
-    print "Setting back bias switch off."
-    fp.setSynchCommand("R22/Reb0 setBackBias false")
-    raise RuntimeError("CCD is powered off but back bias switch was on!")
-
 ## List REB voltages
 print "RefP12 = {0:.1f} Volts (Positive 12 ref)".format(fp.sendSynchCommand("R22/Reb0/RefP12 getValue"))
 print "RefN12 = {0:.1f} Volts (Negative 12 ref)".format(fp.sendSynchCommand("R22/Reb0/RefN12 getValue"))
@@ -37,6 +24,19 @@ if ccdType == 'itl':
     fp.sendSynchCommand("R22/Reb0/Bias1 change odTol 0.3")
     fp.sendSynchCommand("R22/Reb0/Bias2 change odTol 0.3")
     fp.sendSynchCommand("R22/Reb0/Bias1 change gdTol 0.2")
+
+## Check state of focal plane
+hvSwitchOn = fp.sendSynchCommand("R22/Reb0 isBackBiasOn")
+ccdState = fp.sendSynchCommand("R22/Reb0 getCCDsPowerState")
+
+if hvSwitchOn and ccdState == 'ON':
+    raise RuntimeError("CCD is already powered on. Back Bias relay is on.")
+elif not hvSwitchOn and ccdState == 'ON':
+    raise RuntimeError("CCD is already powered on. Back Bias relay is off.")
+elif hvSwitchOn and ccdState == 'OFF':
+    print "Setting back bias switch off."
+    fp.setSynchCommand("R22/Reb0 setBackBias false")
+    raise RuntimeError("CCD is powered off but back bias switch was on!")
 
 ## Power CCDs On
 hvSwitchOn = fp.sendSynchCommand("R22/Reb0 isBackBiasOn")
