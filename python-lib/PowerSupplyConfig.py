@@ -3,8 +3,8 @@
 # This is the configuration and function definition file for REB5 and OTM power supplies in the UC Davis Tempest, Rubin Observatory Optical beam simulator test stand.
 # 2022 Daniel Polin
 
-from xyz.froud.jvisa import JVisaResourceManager
-import sys
+import pyvisa, sys
+import numpy as np
 from time import sleep
 import USBaddresses
 
@@ -54,25 +54,25 @@ class Power_Supplies(object):
     def __init__(self):
         self.rm = pyvisa.ResourceManager()
         # Open the Power supplies for pyvisa commands
-        self.BK9130B_1 = self.rm.openInstrument(USBaddresses.BK9130B1address)	# Open the Analog, Heater, and Digital Power Supply
-        self.BK9130B_2 = self.rm.openInstrument(USBaddresses.BK9130B2address)	# Open CLK Low, CLK High, and OTM Power Supply
-        self.BK1697 = self.rm.openInstrument(USBaddresses.BK1697address)	# Open the OD Power Supply
-        self.BK9184= self.rm.rm.openInstrument(USBaddresses.BK9184address)	# Open the Back Bias Power Supply
+        self.BK9130B_1 = self.rm.open_resource(USBaddresses.BK9130B1address)	# Open the Analog, Heater, and Digital Power Supply
+        self.BK9130B_2 = self.rm.open_resource(USBaddresses.BK9130B2address)	# Open CLK Low, CLK High, and OTM Power Supply
+        self.BK1697 = self.rm.open_resource(USBaddresses.BK1697address)	# Open the OD Power Supply
+        self.BK9184= self.rm.open_resource(USBaddresses.BK9184address)	# Open the Back Bias Power Supply
 
         # Set the Correct Baud Rates 
-        self.BK9130B_1.setBaudRate(Baud9130B)
-        self.BK9130B_2.setBaudRate(Baud9130B)
+        self.BK9130B_1.baud_rate = Baud9130B
+        self.BK9130B_2.baud_rate = Baud9130B
         #BK1697.baud_rate = Baud1697  #same as default, no need to set
-        self.BK9184.setBaudRate(Baud9184)
+        self.BK9184.baud_rate = Baud9184
 
         #Set the correct termination characters
-        self.BK9130B_1.setWriteTerminator(BK9130Btermination)
-        self.BK9130B_1.setReadTerminator(BK9130Btermination)
-        self.BK9130B_2.setWriteTerminator(BK9130Btermination)
-        self.BK9130B_2.setReadTerminator(BK9130Btermination)
-        self.BK1697.setWriteTerminator(BK1697termination)
-        self.BK1697.setReadTerminator(BK1697termination)
-        #self.BK9184.setWriteTerminator(BK9184termination) #BK9184 has default write but \r\n read termination for some reason
+        self.BK9130B_1.write_termination=BK9130Btermination
+        self.BK9130B_1.read_termination=BK9130Btermination
+        self.BK9130B_2.write_termination=BK9130Btermination
+        self.BK9130B_2.read_termination=BK9130Btermination
+        self.BK1697.write_termination=BK1697termination
+        self.BK1697.read_termination=BK1697termination
+        #self.BK9184.write_termination=BK9184termination #BK9184 has default write but \r\n read termination for some reason
         self.BK9184.read_termination=BK9184termination
         
         # Set the power supplies to recieve remote commands
@@ -93,22 +93,22 @@ class Power_Supplies(object):
 
         FoundIDs=[]
         try:
-            FoundIDs.append(self.BK9130B_1.queryString('*IDN?'))
+            FoundIDs.append(self.BK9130B_1.query('*IDN?'))
         except Exception as e:
             FoundIDs.append("Not Found")
             print(e)
         try:
-            FoundIDs.append(self.BK9130B_2.queryString('*IDN?'))
+            FoundIDs.append(self.BK9130B_2.query('*IDN?'))
         except Exception as e:
             FoundIDs.append("Not Found")
             print(e)
         try:    
-            FoundIDs.append(self.BK1697.queryString('SESS00'))
+            FoundIDs.append(self.BK1697.query('SESS00'))
         except Exception as e:
             FoundIDs.append("Not Found")
             print(e)
         try:    
-            FoundIDs.append(self.BK9184.queryString('*IDN?'))
+            FoundIDs.append(self.BK9184.query('*IDN?'))
         except Exception as e:
             FoundIDs.append("Not Found")
             print(e)
@@ -134,17 +134,13 @@ class Power_Supplies(object):
             printresult: By default set to 'False'. If printresult=True, it will print out the values.
         return: The power supply voltages in a list as [Analog, Heater, Digital, CLK Low, CLK High, OTM, OD, BSS]'''
 
-        PWR1=self.BK9130B_1.queryString('MEAS:VOLT:ALL?')
-        PWR2=self.BK9130B_2.queryString('MEAS:VOLT:ALL?')
-        OD=self.BK1697.queryString('GETD00')
+        PWR1=self.BK9130B_1.query_ascii_values('MEAS:VOLT:ALL?')
+        PWR2=self.BK9130B_2.query_ascii_values('MEAS:VOLT:ALL?')
+        OD=self.BK1697.query_ascii_values('GETD00')
         self.BK1697.read()
         OD=[float(str(OD[0])[:-7])*10**-2]
-        PWRBSS=self.BK9184.queryString('MEAS:VOLT?')
-        print(PWR1,PWR2,OD,PWRBSS)
-        print(PWR1,PWR2,OD,PWRBSS)
-        print(OD)
-        print(PWRBSS)
-        '''volts=np.concatenate((np.array(PWR1),np.array(PWR2),np.array(OD),PWRBSS))
+        PWRBSS=self.BK9184.query_ascii_values('MEAS:VOLT?')
+        volts=np.concatenate((np.array(PWR1),np.array(PWR2),np.array(OD),PWRBSS))
         if printresult==True:
             print('''Analog 		= '''+str(volts[0])+'''
 Heater		= '''+str(volts[1])+'''
@@ -156,8 +152,8 @@ OD 		= '''+str(volts[6])+'''
 BSS		= '''+str(volts[7]))
         if PWRBSS[0]>maximum_voltage_difference and min(volts[:-1])<maximum_voltage_difference:
             print("WARNING: BSS on but other voltages off. Shutting down BSS.")
-            self.BK9184.write('OUT 0')'''
-        return #volts
+            self.BK9184.write('OUT 0')
+        return volts
 
     def Check_Volt(self,BSS=True, printresult=False):
         '''This function checks the difference between the set voltage values and the actual output values.
