@@ -227,7 +227,7 @@ class Sphere(object):
             Light intensity in percentage.
         """
         if light_intensity < 0.0 or light_intensity > 100.0:
-            raise ValueError("Light Intensity value {0} not between 0 and 100.")
+            raise ValueError("Light Intensity value {0} not between 0 and 100.".format(light_intensity))
 
         A = 4.58586028
         B = 4.56817782

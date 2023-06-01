@@ -120,7 +120,7 @@ class TestCoordinator(object):
                 else:
                     JFitsUtils.reorder_hdus(filepath)
                     logger.debug("{0} amplifiers reordered.".format(filepath))
-                    logger.info("Image Type: {0}, File Path: {2}".format(image_type, filepath))
+                    logger.info("Image Type: {0}, File Path: {1}".format(image_type, filepath))
             elif filepath.endswith('S00.fits') or filepath.endswith('S02.fits'):
                 os.remove(filepath)
                 logger.debug("{0} removed.".format(filepath))
@@ -187,21 +187,27 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         self.signalpersec = float(options.get('signalpersec'))
         sphere.turn_light_on()
 
-        logger.info("Bias per Flat Count: {1}".format(self.bcount))
+        logger.info("Bias per Flat Count: {0}".format(self.bcount))
 
     def take_images(self):
         """Take multiple flat field images."""
         for flat in self.flats:
+    
+            ## Get flat parameters
             e_per_pixel, count, intensity = flat.split()
             e_per_pixel = float(e_per_pixel)
+            count = int(count)
+            intensity = float(intensity)
+            print(intensity)
+            ## Compute exposure time
             exposure = self.compute_exposure_time(e_per_pixel)
             sphere.set_light_intensity(intensity)
             current = sphere.read_photodiode()
-            count = int(count)
             logger.info("Count: {0}, Target Signal: {1}".format(count, e_per_pixel))
             logger.debug("Photodiode: {0}".format(current))
-            expose_command = lambda : ucd_bench.openShutter(exposure)
 
+            ## Perform acquisition
+            expose_command = lambda : ucd_bench.openShutter(exposure)
             for c in range(count):
                 self.take_bias_plus_image(exposure, expose_command)
 
