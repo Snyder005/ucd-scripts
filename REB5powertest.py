@@ -13,8 +13,19 @@ import PowerSupplyConfig
 supplies = PowerSupplyConfig.Power_Supplies()
 
 check=supplies.check_connections() #check whether supplies are connected.
-print(check)
-    
+print("check",check)
+
+read=supplies.read_volt()
+print("read",read)
+
+readp=supplies.read_volt(printresult=True)
+print("readp",readp)
+
+chv=supplies.check_volt()
+print("chv",chv)
+
+chvp=supplies.check_volt(BSS=False, printresult=True)
+print("chvp",chvp)
 #bss=supplies.Power_Setup()
 #else:
 #    print("REB5 Power shutdown failed due to connection issue.")

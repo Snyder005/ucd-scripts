@@ -6,7 +6,6 @@ import ucd_bench
 import ucd_stage
 import logging
 import JFitsUtils
-import SphereConfig
 
 logger = logging.getLogger(__name__)
 
@@ -107,12 +106,15 @@ class TestCoordinator(object):
             time.sleep(self.extra_delay)
 
         fits_header_data = self.create_fits_header_data(exposure, image_type)
-        file_info = fp.takeExposure(expose_command, fits_header_data, self.annotation, self.locations, self.clears)
+        file_info = fp.takeExposure(expose_command, fits_header_data, self.annotation, self.locations, 
+                                    self.clears)
 
+        ## Perform image file management
         for f in file_info:
 
             filepath = f.toString()
 
+            ## Remove flush bias or reorder amplifiers
             if filepath.endswith('S01.fits'):
                 if TEST_SEQ_NUM == 0 and image_type == 'BIAS':
                     os.remove(filepath)
@@ -122,6 +124,8 @@ class TestCoordinator(object):
                     JFitsUtils.reorder_hdus(filepath)
                     logger.debug("{0} amplifiers reordered.".format(filepath))
                     logger.info("Image Type: {0}, File Path: {1}".format(image_type, filepath))
+
+            ## Remove unused images
             elif filepath.endswith('S00.fits') or filepath.endswith('S02.fits'):
                 os.remove(filepath)
                 logger.debug("{0} removed.".format(filepath))
@@ -162,7 +166,7 @@ class DarkTestCoordinator(BiasPlusImagesTestCoordinator):
         super(DarkTestCoordinator, self).__init__(options, 'DARK', 'DARK')
         self.darks = options.getList('dark')
         ucd_bench.turnLightOff()
-        logger.info("Bias Images per Dark Image: {0}".format(self.bcount))
+        logger.info("Biases per Dark: {0}".format(self.bcount))
 
     def take_images(self):
         """Take multiple dark images."""
@@ -170,7 +174,7 @@ class DarkTestCoordinator(BiasPlusImagesTestCoordinator):
             integration, count = dark.split()
             integration = float(integration)
             count = int(count)
-            logger.info("Dark Images: {0}, Integration Time {1:.1f} sec".format(count, integration))
+            logger.info("Darks: {0}, Integration Time {1:.1f} sec".format(count, integration))
             expose_command = lambda: time.sleep(integration)
 
             for c in range(count):
@@ -185,10 +189,10 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         self.wl_filter = options.get('wl')
         self.hilim = options.getFloat('hilim', 999.0)
         self.lolim = options.getFloat('lolim', 1.0)
-        ucd_bench.turnLightOn()
         self.intensity = 0.0
+        ucd_bench.turnLightOn()
 
-        logger.info("Bias Images per Flat Image: {0}".format(self.bcount))
+        logger.info("Biases per Flat: {0}".format(self.bcount))
 
     def take_images(self):
         """Take multiple flat field images."""
@@ -205,8 +209,8 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         
             ## Compute exposure time
             current = ucd_bench.readPhotodiodeCurrent()
-            exposure = self.compute_exposure_time(e_per_pixel)
-            logger.info("Count: {0}, Target Signal: {1}".format(count, e_per_pixel))
+            exposure = self.compute_exposure_time(e_per_pixel, current)
+            logger.info("Flats: {0}, Target Signal: {1}".format(count, e_per_pixel))
             logger.debug("Photodiode: {0}".format(current))
 
             ## Perform acquisition
@@ -223,37 +227,55 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         if seconds<self.lolim:
             logger.warning("Exposure time %g < lolim (%g)" % (seconds, self.lolim))
             seconds = self.lolim
-        logger.info("Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel))
+        logger.debug("Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel))
         return seconds
 
 class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
-    ''' A TestCoordinator for all tests that involve taking persistence with the flat field generator '''
+    """A TestCoordinator for persistence images."""
     def __init__(self, options):
-        super(PersistenceTestCoordinator, self).__init__(options, "PERSISTENCE", "FLAT")
+        super(PersistenceTestCoordinator, self).__init__(options, "PERSISTENCE", "SPOT")
         self.bcount = options.getInt('bcount', 10)
-        self.wl_filter = options.get('wl')
+        self.persistence = options.getList('persistence')
+        self.mask = options.get('mask')
         self.hilim = options.getFloat('hilim', 999.0)
         self.lolim = options.getFloat('lolim', 1.0)
-        self.signalpersec = float(options.get('signalpersec'))
-        self.persistence= options.getList('persistence')
+        self.intensity = 0.0
+        ucd_bench.turnLightOn()
+
+        logger.info("Biases per Persistence Image: {0}".format(self.bcount))
 
     def take_images(self):
-        e_per_pixel, n_of_dark, exp_of_dark, t_btw_darks= self.persistence[0].split()
-        e_per_pixel = float(e_per_pixel)
-        exposure = round(self.compute_exposure_time(e_per_pixel), 1)
 
-        # bias acquisitions
+        ## Get persistence parameters
+        e_per_pixel, intensity, n_of_dark, exp_of_dark, t_btw_darks= self.persistence[0].split()
+        e_per_pixel = float(e_per_pixel)
+        intensity = float(intensity)
+        if self.intensity != intensity:
+            ucd_bench.setLightIntensity(intensity)
+
+        ## Calculate exposure time
+        current = ucd_bench.readPhotodiodeCurrent()
+        exposure = self.compute_exposure_time(e_per_pixel, current)
+
+        ## Bias acquisitions
         self.take_bias_images(self.bcount)
 
-        # dark acquisition
+        ## Flat acquisition
+        logger.info("Persistence Image Target Signal: {0}".format(e_per_pixel)) 
         expose_command = lambda: ucd_bench.openShutter(exposure)
-        file_list = super(PersistenceTestCoordinator, self).take_image(exposure, expose_command, "FLAT")
+        file_list = super(PersistenceTestCoordinator, self).take_image(exposure, expose_command, "SPOT")
 
-        # dark acquisition
-        for i in range(int(n_of_dark)):
-            time.sleep(float(t_btw_darks))
-            super(PersistenceTestCoordinator, self).take_image(float(exp_of_dark), lambda: time.sleep(float(exp_of_dark)), image_type="DARK")
-        return file_list
+        ## Dark acquisition
+        exp_of_dark = float(exp_of_dark)
+        n_of_dark = int(n_of_dark)
+        t_btw_darks = float(t_btw_darks)
+        logger.info("Darks: {0}, Integration Time: {1} sec, Time Between Darks: {2} sec".format(n_of_dark, 
+                                                                                                exp_of_dark, 
+                                                                                                t_btw_darks)
+        for i in range(n_of_dark):
+            time.sleep(t_btw_darks)
+            super(PersistenceTestCoordinator, self).take_image(exp_of_dark, lambda: time.sleep(exp_of_dark), 
+                                                               image_type="DARK")
 
     def compute_exposure_time(self, e_per_pixel):
         e_per_pixel = float(e_per_pixel)
@@ -324,7 +346,6 @@ def do_flat(options):
    
 def do_persistence(options):
     """Initialize a PersistenceTestCoordinator and take images."""
-    logger.info("Persistence called %s" % options)
     tc = PersistenceTestCoordinator(options)
     tc.take_images()
 
