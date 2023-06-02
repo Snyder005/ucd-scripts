@@ -11,6 +11,8 @@ import SphereConfig
 logger = logging.getLogger(__name__)
 
 TEST_SEQ_NUM = 0
+CURRENT_TO_FLUX = (7.97E13, -1.16E3)
+
 
 class TestCoordinator(object):
     """Base class for taking images.
@@ -135,7 +137,7 @@ class BiasTestCoordinator(TestCoordinator):
         super(BiasTestCoordinator, self).__init__(options, 'BIAS', 'BIAS')
         self.count = options.getInt('count', 10)
         ucd_bench.turnLightOff()
-        logger.info("Count: {0}".format(self.count))
+        logger.info("Bias Images: {0}".format(self.count))
 
     def take_images(self):
         """Take multiple bias images."""
@@ -160,7 +162,7 @@ class DarkTestCoordinator(BiasPlusImagesTestCoordinator):
         super(DarkTestCoordinator, self).__init__(options, 'DARK', 'DARK')
         self.darks = options.getList('dark')
         ucd_bench.turnLightOff()
-        logger.info("Bias per Dark Count: {0}".format(self.bcount))
+        logger.info("Bias Images per Dark Image: {0}".format(self.bcount))
 
     def take_images(self):
         """Take multiple dark images."""
@@ -168,7 +170,7 @@ class DarkTestCoordinator(BiasPlusImagesTestCoordinator):
             integration, count = dark.split()
             integration = float(integration)
             count = int(count)
-            logger.info("Dark Count: {0}, Integration Time {1:.1f} sec".format(count, integration))
+            logger.info("Dark Images: {0}, Integration Time {1:.1f} sec".format(count, integration))
             expose_command = lambda: time.sleep(integration)
 
             for c in range(count):
@@ -183,11 +185,10 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         self.wl_filter = options.get('wl')
         self.hilim = options.getFloat('hilim', 999.0)
         self.lolim = options.getFloat('lolim', 1.0)
-        self.signalpersec = float(options.get('signalpersec'))
         ucd_bench.turnLightOn()
         self.intensity = 0.0
 
-        logger.info("Bias per Flat Count: {0}".format(self.bcount))
+        logger.info("Bias Images per Flat Image: {0}".format(self.bcount))
 
     def take_images(self):
         """Take multiple flat field images."""
@@ -198,13 +199,13 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
             e_per_pixel = float(e_per_pixel)
             count = int(count)
             intensity = float(intensity)
-            print(intensity)
-            ## Compute exposure time
-            exposure = self.compute_exposure_time(e_per_pixel)
             if self.intensity != intensity:
                 ucd_bench.setLightIntensity(intensity)
                 self.intensity = intensity
+        
+            ## Compute exposure time
             current = ucd_bench.readPhotodiodeCurrent()
+            exposure = self.compute_exposure_time(e_per_pixel)
             logger.info("Count: {0}, Target Signal: {1}".format(count, e_per_pixel))
             logger.debug("Photodiode: {0}".format(current))
 
@@ -213,9 +214,9 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
             for c in range(count):
                 self.take_bias_plus_image(exposure, expose_command)
 
-    def compute_exposure_time(self, e_per_pixel):
-        e_per_pixel = float(e_per_pixel)
-        seconds = round(e_per_pixel/self.signalpersec, 1)
+    def compute_exposure_time(self, e_per_pixel, current):
+
+        seconds = round(e_per_pixel/(current*CURRENT_TO_FLUX[0] + CURRENT_TO_FLUX[1]), 1)
         if seconds>self.hilim:
             logger.warning("Exposure time %g > hilim (%g)" % (seconds, self.hilim))
             seconds = self.hilim
