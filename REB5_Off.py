@@ -1,3 +1,5 @@
+#!/usr/bin/env ccs-script
+
 #REB5 POWER STARTUP SCRIPT
 
 #2023-Daniel Polin
@@ -12,6 +14,7 @@ supplies = PowerSupplyConfig.Power_Supplies()
 
 check=supplies.check_connections() #check whether supplies are connected.
 if check==True:
-    bss=supplies.Power_Shutdown()
+    reb=supplies.power_shutdown()
+    print(reb)
 else:
     print("REB5 Power shutdown failed due to connection issue.")

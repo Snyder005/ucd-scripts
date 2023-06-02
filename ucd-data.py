@@ -43,6 +43,9 @@ def main(cfgfile, run=None):
     ih = CCS.attachSubsystem("ucd-ih")
     rootdir = ih.sendSynchCommand("getConfigurationParameterValue imageHandler/ImageHandlingConfig FITSRootDirectory")
     today = datetime.date.today().strftime("%Y%m%d")
+    if not os.path.exists(os.path.join(rootdir, today)):
+        os.makedirs(os.path.join(rootdir, today))
+
     obsfile_handler = logging.FileHandler(os.path.join(rootdir, today, '{0}_acquisition.log'.format(today)))
     obsfile_handler.setLevel(logging.INFO)
     obsfile_handler.addFilter(WarningFilter())

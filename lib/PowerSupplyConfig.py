@@ -179,7 +179,7 @@ BSS		= '''+str(volts[7]))
         inputs= [VP7,VP_HTR,VP5,VP15,VN15,V_OTM,VP40,VN70]
         if BSS==False:
             inputs[7]=0
-        diff=abs(voltages-inputs)
+        diff=[abs(voltages[i]-inputs[i]) for i in range(8)]
         maxdiff=max(diff)
         if maxdiff<maximum_voltage_difference:
             check_result= True
@@ -203,8 +203,8 @@ BSS		= '''+str(voltages[7]))
             printresult: By default set to 'False'. If printresult=True, it will print out whether the check was passed and what the values read out were.
         return: True if the voltages are all within the acceptable rance of zero.'''
         voltages=self.read_volt()
-        inputs= np.array([0,0,0,0,0,0,0,0])
-        diff=abs(voltages-inputs)
+        inputs= [0,0,0,0,0,0,0,0]
+        diff=[abs(voltages[i]-inputs[i]) for i in range(8)]
         maxdiff=max(diff)
         if maxdiff<maximum_voltage_difference:
             check_result= True
@@ -237,7 +237,7 @@ BSS		= '''+str(voltages[7]))
         #if voltages are not at set values or at 0V, turn them off in order.
         if check==False and checkoff==False and checkBSS==False:
             print('WARNING: Voltages at Unknown values! Shutting Down.')
-            checkoff=self.Power_Shutdown()
+            checkoff=self.power_shutdown()
             if checkoff==False:
                 print('WARNING: Shutdown Failed!')
             return False

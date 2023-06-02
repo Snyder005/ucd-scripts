@@ -227,7 +227,7 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         if seconds<self.lolim:
             logger.warning("Exposure time %g < lolim (%g)" % (seconds, self.lolim))
             seconds = self.lolim
-        logger.debug("Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel))
+        logger.debug("Computed Exposure %g sec for e_per_pixel=%g" % (seconds, e_per_pixel))
         return seconds
 
 class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
@@ -271,15 +271,15 @@ class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
         t_btw_darks = float(t_btw_darks)
         logger.info("Darks: {0}, Integration Time: {1} sec, Time Between Darks: {2} sec".format(n_of_dark, 
                                                                                                 exp_of_dark, 
-                                                                                                t_btw_darks)
+                                                                                                t_btw_darks))
         for i in range(n_of_dark):
             time.sleep(t_btw_darks)
             super(PersistenceTestCoordinator, self).take_image(exp_of_dark, lambda: time.sleep(exp_of_dark), 
                                                                image_type="DARK")
 
-    def compute_exposure_time(self, e_per_pixel):
-        e_per_pixel = float(e_per_pixel)
-        seconds = round(e_per_pixel/self.signalpersec, 1)
+    def compute_exposure_time(self, e_per_pixel, current):
+
+        seconds = round(e_per_pixel/(current*CURRENT_TO_FLUX[0] + CURRENT_TO_FLUX[1]), 1)
         if seconds>self.hilim:
             logger.warning("Exposure time %g > hilim (%g)" % (seconds, self.hilim))
             seconds = self.hilim
@@ -302,7 +302,7 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
         self.stagey = 0
         self.stagez = 0
 
-        logger.info("Mask: {0}, Image Count: {1}, Bias Count: {2}".format(mask, imcount, self.bcount))
+        logger.info("Mask: {0}, Image Count: {1}, Bias Count: {2}".format(self.mask, self.imcount, self.bcount))
 
     def take_images(self):
         """Take multiple spot images."""

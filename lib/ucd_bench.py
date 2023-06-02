@@ -39,7 +39,7 @@ def setLightIntensity(intensity):
     logger.debug("Setting light intensity to {0}%".format(intensity))
     sphere.set_light_intensity(intensity)
 
-def readPhotodiodeCurrent()
+def readPhotodiodeCurrent():
 
     logger.debug("Reading photodiode current.")
     return sphere.read_photodiode()

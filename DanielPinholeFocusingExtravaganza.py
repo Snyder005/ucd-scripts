@@ -1,7 +1,17 @@
 #!/usr/bin/env ccs-script
 import sys,time
 import SphereConfig
+import PowerSupplyConfig
 from argparse import ArgumentParser
+import sys,time
+
+
+supplies = PowerSupplyConfig.Power_Supplies()
+
+check=supplies.read_volt(printresult=True) #check whether supplies are connected.
+
+'''
+
 
 def main(light_intensity):
 
@@ -37,4 +47,4 @@ if __name__ == '__main__':
     parser.add_argument('--intensity', type=int, default=50)
     args = parser.parse_args()
 
-    main(args.intensity)
+    main(args.intensity)'''

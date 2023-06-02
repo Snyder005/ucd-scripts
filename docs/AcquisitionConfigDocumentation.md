@@ -1,4 +1,4 @@
-# Data Acquisition Config File Documentation
+# Data Acquisition Configuration File Documentation
 
 Data acquisition is performed by defining the desired test and image configurations in a CFG file. To run a data acquisition, the configuration file is passed as a command-line argument to the main `ucd-data.py` script that is run in the `ccs-script` Jython environment.
 
@@ -21,7 +21,7 @@ In the above example the `ACQUIRE` section details three different test types th
 
 ### DESCRIPTION Section
 
-The `DESCRIPTION` section allows for a top-level, human-readable description of the purpose of the data acquisition configuration file. This description can span multiple lines, and will be recorded in the output of the human-readable log file. 
+The `DESCRIPTION` section is an optional section that allows for a top-level, human-readable description of the purpose of the data acquisition configuration file. This description can span multiple lines, and will be recorded in the output of the human-readable log file. 
 
 Example:
 
@@ -32,4 +32,6 @@ Example:
 
 ### BIAS Section
 
-The bias 
+The `BIAS` section is used to define a test consisting of only bias images. 
+
+* ANNOTATION
