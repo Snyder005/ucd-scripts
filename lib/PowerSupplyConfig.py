@@ -1,15 +1,19 @@
+#!/usr/bin/env ccs-script
+
 #POWER SUPPLY CONFIG AND FUNCTION FILE
 
 # This is the configuration and function definition file for REB5 and OTM power supplies in the UC Davis Tempest, Rubin Observatory Optical beam simulator test stand.
 # 2022 Daniel Polin
 
 from xyz.froud.jvisa import JVisaResourceManager
+import java.lang.Exception as JException
+from java.lang import String
 import sys
 from time import sleep
 import USBaddresses
 
 ###############################################################################
-# Set the Baud rates. The pyvisa default is 9600, but the BK Precision 9130Bs run at 4800
+# Set the Baud rates. The jvisa default is 9600, but the BK Precision 9130Bs run at 4800
 Baud9130B=	4800
 Baud1697=	9600
 Baud9184=	57600
@@ -52,12 +56,12 @@ maximum_voltage_difference = 0.33
 
 class Power_Supplies(object):
     def __init__(self):
-        self.rm = pyvisa.ResourceManager()
-        # Open the Power supplies for pyvisa commands
+        self.rm = JVisaResourceManager()
+        # Open the Power supplies for jvisa commands
         self.BK9130B_1 = self.rm.openInstrument(USBaddresses.BK9130B1address)	# Open the Analog, Heater, and Digital Power Supply
         self.BK9130B_2 = self.rm.openInstrument(USBaddresses.BK9130B2address)	# Open CLK Low, CLK High, and OTM Power Supply
         self.BK1697 = self.rm.openInstrument(USBaddresses.BK1697address)	# Open the OD Power Supply
-        self.BK9184= self.rm.rm.openInstrument(USBaddresses.BK9184address)	# Open the Back Bias Power Supply
+        self.BK9184 = self.rm.openInstrument(USBaddresses.BK9184address)	# Open the Back Bias Power Supply
 
         # Set the Correct Baud Rates 
         self.BK9130B_1.setBaudRate(Baud9130B)
@@ -67,22 +71,22 @@ class Power_Supplies(object):
 
         #Set the correct termination characters
         self.BK9130B_1.setWriteTerminator(BK9130Btermination)
-        self.BK9130B_1.setReadTerminator(BK9130Btermination)
+        self.BK9130B_1.setReadTerminationCharacter(BK9130Btermination)
         self.BK9130B_2.setWriteTerminator(BK9130Btermination)
-        self.BK9130B_2.setReadTerminator(BK9130Btermination)
+        self.BK9130B_2.setReadTerminationCharacter(BK9130Btermination)
         self.BK1697.setWriteTerminator(BK1697termination)
-        self.BK1697.setReadTerminator(BK1697termination)
+        self.BK1697.setReadTerminationCharacter(BK1697termination)
         #self.BK9184.setWriteTerminator(BK9184termination) #BK9184 has default write but \r\n read termination for some reason
-        self.BK9184.read_termination=BK9184termination
+        #self.BK9184.setReadTerminationCharacter(BK9184termination) #Jython only allows a single temination character not \r\n so we have to just add that to the readout.
         
         # Set the power supplies to recieve remote commands
         self.BK9130B_1.write('SYSTem:REMote')
         self.BK9130B_2.write('SYSTem:REMote')
         try:
-            self.BK1697.query('SESS00')
-        except Exception as e:
+            self.BK1697.queryString('SESS00')
+        except (JException,Exception) as e:
             print("OD Error: ",e)
-        self.BK9184.write('SYStem:REMote')
+        self.BK9184.write('SYStem:REMote \r\n')
         return
 
     def check_connections(self):
@@ -94,24 +98,28 @@ class Power_Supplies(object):
         FoundIDs=[]
         try:
             FoundIDs.append(self.BK9130B_1.queryString('*IDN?'))
-        except Exception as e:
+        except (JException,Exception) as e:
             FoundIDs.append("Not Found")
             print(e)
+        
         try:
             FoundIDs.append(self.BK9130B_2.queryString('*IDN?'))
-        except Exception as e:
+        except (JException,Exception) as e:
             FoundIDs.append("Not Found")
             print(e)
+        
         try:    
             FoundIDs.append(self.BK1697.queryString('SESS00'))
-        except Exception as e:
+        except (JException,Exception) as e:
             FoundIDs.append("Not Found")
             print(e)
+        print(4,FoundIDs)
         try:    
-            FoundIDs.append(self.BK9184.queryString('*IDN?'))
-        except Exception as e:
+            FoundIDs.append(self.BK9184.queryString('*IDN?'\r\n))
+        except (JException,Exception) as e:
             FoundIDs.append("Not Found")
             print(e)
+        print(FoundIDs)
         IDlist=[ID9130B1,ID9130B2,OK1697,ID9184]
         if FoundIDs == IDlist:
             print("All Power Supplies Connected")
@@ -127,7 +135,7 @@ class Power_Supplies(object):
                 print("ERROR: BK9194 (BSS) Not connected, please fix the address in USBaddresses.py.")
             return False
 
-    def Read_Volt(self,printresult=False):
+    def read_volt(self,printresult=False):
         '''This function reads out the power supply voltages and returns them as a list.
 
         inputs: 
@@ -139,12 +147,12 @@ class Power_Supplies(object):
         OD=self.BK1697.queryString('GETD00')
         self.BK1697.read()
         OD=[float(str(OD[0])[:-7])*10**-2]
-        PWRBSS=self.BK9184.queryString('MEAS:VOLT?')
+        PWRBSS=self.BK9184.queryString('MEAS:VOLT?' \r\n)
         print(PWR1,PWR2,OD,PWRBSS)
         print(PWR1,PWR2,OD,PWRBSS)
         print(OD)
         print(PWRBSS)
-        '''volts=np.concatenate((np.array(PWR1),np.array(PWR2),np.array(OD),PWRBSS))
+        """volts=np.concatenate((np.array(PWR1),np.array(PWR2),np.array(OD),PWRBSS))
         if printresult==True:
             print('''Analog 		= '''+str(volts[0])+'''
 Heater		= '''+str(volts[1])+'''
@@ -156,10 +164,10 @@ OD 		= '''+str(volts[6])+'''
 BSS		= '''+str(volts[7]))
         if PWRBSS[0]>maximum_voltage_difference and min(volts[:-1])<maximum_voltage_difference:
             print("WARNING: BSS on but other voltages off. Shutting down BSS.")
-            self.BK9184.write('OUT 0')'''
+            self.BK9184.write('OUT 0')"""
         return #volts
 
-    def Check_Volt(self,BSS=True, printresult=False):
+    def check_volt(self,BSS=True, printresult=False):
         '''This function checks the difference between the set voltage values and the actual output values.
 
         inputs: 
@@ -188,7 +196,7 @@ OD 		= '''+str(voltages[6])+'''
 BSS		= '''+str(voltages[7]))
         return check_result
 
-    def Check_for_off_Volt(self,printresult=False):
+    def check_for_off_volt(self,printresult=False):
         '''This function checks the difference between the actual output values and 0V for each.
 
         inputs: 
@@ -214,12 +222,10 @@ BSS		= '''+str(voltages[7]))
         return check_result
 
 
-    def Power_Setup(self):
+    def power_setup(self):
         '''This function turns on the REB5 and OTM power supplies to the voltages according to the setings in the 'PowerSupplyConfig.py' file. It does not turn on the BSS supply
 
         result: turns on REB5 and OTM voltages. Returns true if it worked or shuts down and turns off if it did not.'''
-
-        #rm = pyvisa.ResourceManager()
 
         #first check whether the voltages are already on.
         checkoff=Power_Supplies.Check_for_off_Volt(self)
@@ -249,7 +255,7 @@ BSS		= '''+str(voltages[7]))
 
             self.BK9130B_2.write('OUTPut 1')
             self.BK9130B_1.write('OUTPut 1')
-            self.BK1697.query('SOUT001') #OD is just turned off
+            self.BK1697.queryString('SOUT001') #OD is just turned off
 
             # Turn on the Power Supply voltages
 
@@ -264,14 +270,14 @@ BSS		= '''+str(voltages[7]))
             #phase 2
             self.BK9130B_1.write('APPLY:VOLTage '+str(VP7)+','+str(VP_HTR)+','+str(VP5))
             self.BK9130B_2.write('APPLY:VOLTage  '+str(VP15)+','+str(VN15)+','+str(V_OTM))
-            self.BK1697.query('VOLT00'+str(VP40)+'0')
+            self.BK1697.queryString('VOLT00'+str(VP40)+'0')
             print('Clock Voltages On...')
             print("Waiting "+str(voltagedelaytime)+"s")
             sleep(voltagedelaytime)
             Power_Supplies.Read_Volt(self,printresult=True)
 
             #phase 3
-            self.BK1697.query('SOUT000')
+            self.BK1697.queryString('SOUT000')
             sleep(2)
             print('OD Voltage On...')
 
@@ -283,18 +289,18 @@ BSS		= '''+str(voltages[7]))
             print('WARNING: VOLTAGES ARE NOT CORRECT!')
             return False
     
-    def BSS_On(self):
+    def bss_on(self):
         '''This Function Turns on the BSS Supply
         
         return: True if on, False if not.'''
         check=Power_Supplies.Check_Volt(self,BSS=False)
         if check == True:
-            self.BK9184.write('VOLT '+ str(VN70)+' \r')
-            self.BK9184.write('OUT:LIM:VOLT '+str(VN70max))
-            self.BK9184.write('OUT:LIM:CURR '+str(IN70max))
-            errors=self.BK9184.query('SYS:ERR?')
+            self.BK9184.write('VOLT '+ str(VN70)+' \r\n')
+            self.BK9184.write('OUT:LIM:VOLT '+str(VN70max)+' \r\n')
+            self.BK9184.write('OUT:LIM:CURR '+str(IN70max)+' \r\n')
+            errors=self.BK9184.queryString('SYS:ERR? \r\n')
             if errors=='0':
-            	self.BK9184.write('OUT ON \r')
+            	self.BK9184.write('OUT ON \r\n')
             else:
             	print("BSS Supply error: ",errors)
             sleep(0.5) #sleep to let voltage reach VN70 value
@@ -306,15 +312,15 @@ BSS		= '''+str(voltages[7]))
             print("ERROR: You must turn on CCD voltages before BSS!")
             return False
         
-    def BSS_Off(self):
+    def bss_off(self):
         '''This Function Turns off the BSS Supply
         
         return: True if off, False if not.'''
         '''This Function Turns on the BSS Supply
         
         return: True if on, False if not.'''
-        self.BK9184.write('OUT 0')
-        self.BK9184.write('VOLT 0')
+        self.BK9184.write('OUT 0 \r\n')
+        self.BK9184.write('VOLT 0 \r\n')
         sleep(0.2) #wait for voltage to turn off
         checkoff=Power_Supplies.Check_for_off_Volt(self)
         check=Power_Supplies.Check_Volt(self,BSS=False)
@@ -326,9 +332,8 @@ BSS		= '''+str(voltages[7]))
             print("WARNING: BSS Not shut down properly or other voltages incorrect!")
             return False
 
-    def Power_Shutdown(self):
+    def power_shutdown(self):
         '''This function zeroes and shuts off all REB and OTM power supplies.'''
-        #rm = pyvisa.ResourceManager()
         voltages = Power_Supplies.Read_Volt(self)
         checkoff=Power_Supplies.Check_for_off_Volt(self)
 
@@ -336,8 +341,8 @@ BSS		= '''+str(voltages[7]))
             print("Shutting down voltages...")
 
             # Set Back Bias to 0V	
-            self.BK9184.write('VOLT 0')
-            self.BK9184.write('OUT 0')
+            self.BK9184.write('VOLT 0 \r\n')
+            self.BK9184.write('OUT 0 \r\n')
             print("Waiting "+str(voltagedelaytime)+"s")
             sleep(voltagedelaytime)
             read=Power_Supplies.Read_Volt(self,printresult=True)
@@ -348,7 +353,7 @@ BSS		= '''+str(voltages[7]))
                 return False
 
             #Set OD to 0V
-            self.BK1697.query('SOUT001')
+            self.BK1697.queryString('SOUT001')
             print("Waiting "+str(voltagedelaytime)+"s")
             sleep(voltagedelaytime)
             read=Power_Supplies.Read_Volt(self,printresult=True)

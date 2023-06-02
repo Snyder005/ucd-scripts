@@ -6,6 +6,7 @@ import logging
 import datetime
 from argparse import ArgumentParser
 from java.time import Duration
+import java.lang.Exception as JException
 
 from org.lsst.ccs.scripting import CCS
 
@@ -66,7 +67,7 @@ def main(cfgfile, run=None):
     try:
         cfg = config.parseConfig(cfgfile)
         config.execute(cfg, {"run" : run})
-    except Exception:
+    except (JException, Exception):
         logger.exception("Fatal error occurred in data acquisition.")
 
 if __name__ == '__main__':

@@ -11,7 +11,6 @@ import SphereConfig
 logger = logging.getLogger(__name__)
 
 TEST_SEQ_NUM = 0
-sphere = SphereConfig.Sphere()
 
 class TestCoordinator(object):
     """Base class for taking images.
@@ -135,7 +134,7 @@ class BiasTestCoordinator(TestCoordinator):
     def __init__(self, options):
         super(BiasTestCoordinator, self).__init__(options, 'BIAS', 'BIAS')
         self.count = options.getInt('count', 10)
-        sphere.turn_light_off()
+        ucd_bench.turnLightOff()
         logger.info("Count: {0}".format(self.count))
 
     def take_images(self):
@@ -160,7 +159,7 @@ class DarkTestCoordinator(BiasPlusImagesTestCoordinator):
     def __init__(self, options):
         super(DarkTestCoordinator, self).__init__(options, 'DARK', 'DARK')
         self.darks = options.getList('dark')
-        sphere.turn_light_off()
+        ucd_bench.turnLightOff()
         logger.info("Bias per Dark Count: {0}".format(self.bcount))
 
     def take_images(self):
@@ -185,7 +184,8 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         self.hilim = options.getFloat('hilim', 999.0)
         self.lolim = options.getFloat('lolim', 1.0)
         self.signalpersec = float(options.get('signalpersec'))
-        sphere.turn_light_on()
+        ucd_bench.turnLightOn()
+        self.intensity = 0.0
 
         logger.info("Bias per Flat Count: {0}".format(self.bcount))
 
@@ -201,8 +201,10 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
             print(intensity)
             ## Compute exposure time
             exposure = self.compute_exposure_time(e_per_pixel)
-            sphere.set_light_intensity(intensity)
-            current = sphere.read_photodiode()
+            if self.intensity != intensity:
+                ucd_bench.setLightIntensity(intensity)
+                self.intensity = intensity
+            current = ucd_bench.readPhotodiodeCurrent()
             logger.info("Count: {0}, Target Signal: {1}".format(count, e_per_pixel))
             logger.debug("Photodiode: {0}".format(current))
 

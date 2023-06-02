@@ -1,9 +1,9 @@
 #!/usr/bin/env ccs-script
-
+#
 #LABSPHERE LIGHT CONFIG AND FUNCTION FILE
-
+#
 # This is the configuration and function definition file for Labsphere light source in the UC Davis Viscacha, Rubin Observatory Optical beam simulator test stand.
-
+#
 #This code was largely written by Craig Lage for the Storm data aquisition system. It was edited and repurposed for the Viscacha REB5 system
 # 2023 Daniel Polin
 #
@@ -15,7 +15,11 @@ import socket
 import logging
 
 class Sphere(object):
+    """A client-side connection to a light, photodiode, and variable aperture.
 
+    Connections to the light, photodiode, and variable aperture are made using
+    the socket module, a low-level networking interface.
+    """
     def __init__(self):
 
         socket.setdefaulttimeout(0.5)# Timeout if no connection after 0.5 seconds
@@ -55,7 +59,7 @@ class Sphere(object):
         Parameters
         ----------
         num_tries : `int`, (optional)
-            Number of times to try to initialize the light socket (the default is 3).
+            Number of times to try to initialize the light socket.
         """
         ## Try to initialize the light socket
         for n in range(num_tries):
@@ -76,7 +80,7 @@ class Sphere(object):
         Parameters
         ----------
         num_tries: `int`, (optional)
-            Number of times to try to initialize the aperture socket. (the default is 3).
+            Number of times to try to initialize the aperture socket.
 
         Raises
         ------
@@ -111,12 +115,18 @@ class Sphere(object):
                 raise RuntimeError("Failed to set parameter {0} to value {1}".format(name, value))
 
     def verify_communications(self):
-        """Verify communication status."""
+        """Verify communication status.
 
+        Returns
+        -------
+        status : `bool`
+            `True` if socket communication is connected. `False` if not.
+        """
         light_socket_status = (self.light_socket.getpeername()[0] == self.light_ip)
         aperture_socket_status = (self.aperture_socket.getpeername()[0] == self.aperture_ip)
-        
-        return (light_socket_status and aperture_socket_status)
+        status = (light_socket_status and aperture_socket_status)
+
+        return status
 
     def turn_light_on(self, delay_time=4.0):
         """Turn on the light.
@@ -134,8 +144,8 @@ class Sphere(object):
 
         Parameters
         ----------
-        delay_time : `float`
-            Time in seconds to wait for light stabilization. 
+        delay_time : `float` (optional)
+            Time in seconds to wait for light stabilization.
         """
         self.light_socket.send(bytes("PS2~0\r"))
         time.sleep(delay_time)
@@ -146,9 +156,15 @@ class Sphere(object):
         Parameters
         ----------
         move_value : `int`
-            Variable aperture position specified as number of stepper motor pulses.
-        num_waits: `int`
-            Number of timesteps (2 seconds) to wait for move
+            Variable aperture position specified as number of stepper motor 
+            pulses.
+        num_waits: `int` (optional)
+            Number of timesteps (2 seconds) to wait for move.
+
+        Raises
+        ------
+        RuntimeError
+            Raised if the variable aperture failed to move.
         """
         ## Check DL status
         self.aperture_socket.send(b"DL\r")
@@ -179,7 +195,8 @@ class Sphere(object):
             raise RuntimeError("RV value not equal to 223. Failed aperture move.")
 
     def set_light_intensity(self, light_intensity):
-        """ Opens the variable aperture a specified amount given the input light intensity value.
+        """ Opens the variable aperture a specified amount calculated from the
+        given light intensty value.
 
         Parameters
         ----------
@@ -217,14 +234,26 @@ class Sphere(object):
 
     @staticmethod
     def calculate_aperture_position(light_intensity):
-        """Calculate the required aperture position (in %) for given light intensity (in %)
+        """Calculate the required aperture position (in %) for given light 
+        intensity (in %.)
 
-        Uses I = A + B tanh(C s + D), where s is the aperture position. Constants come from fit to photometer data
+        Uses I = A + B tanh(C s + D), where s is the aperture position. 
+        Constants come from fit to photometer data.
 
         Parameters
         ----------
         light_intensity : `float`
             Light intensity in percentage.
+
+        Returns
+        -------
+        position : `float`
+            Aperture position in percentage.
+
+        Raises
+        ------
+        ValueError
+            Raised if light intensity is not between 0 and 100."
         """
         if light_intensity < 0.0 or light_intensity > 100.0:
             raise ValueError("Light Intensity value {0} not between 0 and 100.".format(light_intensity))
@@ -237,7 +266,8 @@ class Sphere(object):
         Bp = B / (A + B)
 
         if light_intensity > 99:
-            return 100.0
+            position = 100.0
         else:
-            s = (math.atanh((light_intensity / 100.0 - Ap) / Bp) - D) / C
-            return s
+            position = (math.atanh((light_intensity / 100.0 - Ap) / Bp) - D) / C
+        
+        return position
