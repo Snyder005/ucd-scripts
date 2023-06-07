@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env ccs-script
 
 #Author: Daniel Polin
 #Date: 2023

@@ -329,6 +329,14 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
                 for i in range(self.imcount):
                     self.take_bias_plus_image(exposure, expose_command)
 
+    def create_fits_header_data(self, exposure, image_type):
+        data = super(SpotTestCoordinator, self).create_fits_header_data(exposure, image_type)
+        if image_type != 'BIAS':
+            data.update({'STAGEX' : self.stagex,
+                         'STAGEY' : self.stagey,
+                         'STAGEZ' : self.stagez})
+        return data
+
 def do_bias(options):
     """Initialize a BiasTestCoordinator and take images."""
     tc = BiasTestCoordinator(options)

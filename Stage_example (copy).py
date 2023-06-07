@@ -1,11 +1,9 @@
-#!/usr/bin/env ccs-script
-
 #2023-Daniel Polin
 import sys,time
-sys.path.append('/home/ccd/ucd-scripts/lib')
+sys.path.append('/home/ccd/ucd-scripts/python-versions')
 import Stage
 
-'''stage = Stage.Stage()
+stage = Stage.Stage()
 
 #check=stage.check_communications()
 #print(check)
@@ -20,4 +18,4 @@ move=stage.move_stage(x=x,y=y,z=z)
 print(move)
 
 zero=stage.zero_encoders()
-print(zero)'''
+print(zero)

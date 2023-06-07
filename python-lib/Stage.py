@@ -24,6 +24,8 @@ class Stage(object):
         self.IOR_DISABLE_INDEX = 0x45 # Sets Input/Output Control register (IOR). Selects Load Cntr, A/B Enable gate, FLG1 Carry, FLG2 Borrow, 
         self.initialize_serial()
         self.initialize_encoders()
+        
+        self.current_pos=[0,0,0]
         return
 
     def initialize_serial(self):
@@ -144,17 +146,41 @@ class Stage(object):
     def move_stage(self,x=0,y=0,z=0):
         """Moves the stage a number of stepper pulses given by the value [x, y, z].
         
-        input: [x,y,z] - a list of three integer values that tell the stage how far to move in x, y, and z relative to the initial position.
+        input: x,y,z - the three values that tell the stage how far to move in x, y, and z relative to the initial position.
         
         returns: The new encoder position readout."""
-        set_pos=[x,y,z]
+        set_pos=[int(x/2.54),int(y/2.54),int(z/2.54)]
         for i in range(3):
             if set_pos[i] == 0:
                 continue
             #print("Moving stage %s by %s steps\n"%(self.POS_NAME[i], set_pos[i]))
             self.ser.write(('F,C'+self.STEPPER_NAME[i]+str(set_pos[i])+',R').encode())
             time.sleep(0.5)
-        time.sleep(0.5)
+        time.sleep(5)
         new_pos=self.read_encoders()
+        self.current_pos=new_pos
         return new_pos
-
+        
+    def go_to(self,x=None,y=None,z=None):
+        '''Moves the stage to an absolute position from the positive z direction.
+        
+        input: x,y,z = the absolute x,y, and z values relative to starting the script that you want to move to. It will approach these from the +i hat direction.
+        
+        returns: The new Encoder position readout.'''
+        pos=self.read_encoders()
+        if x==None:
+            x=self.current_pos[0]
+        if y==None:
+            y=self.current_pos[1]
+        if z==None:
+            z=self.current_pos[2]
+        set_pos=[x,y,z]       
+        overshoot=50
+        pos=self.move_stage(x=set_pos[0]-pos[0]+overshoot,y=set_pos[1]-pos[1]+overshoot,z=set_pos[2]-pos[2]+overshoot)
+        for i in range(3):
+            while pos[i]<set_pos[i]:
+                extra_move=[0,0,0]
+                extra_move[i]=overshoot
+                pos=self.move_stage(x=extra_move[0],y=extra_move[1],z=extra_move[2])
+            while abs(pos[i]-set_pos[i])>10:
+                return
