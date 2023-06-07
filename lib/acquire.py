@@ -230,6 +230,12 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         logger.debug("Computed Exposure %g sec for e_per_pixel=%g" % (seconds, e_per_pixel))
         return seconds
 
+    def create_fits_header_data(self, exposure, image_type):
+        data = super(FlatFieldTestCoordinator, self).create_fits_header_data(exposure, image_type)
+        if image_type != 'BIAS':
+            data.update({'FILTER' : self.wl_filter})
+        return data
+
 class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
     """A TestCoordinator for persistence images."""
     def __init__(self, options):

@@ -6,6 +6,7 @@
 #This code interfaces and controls the x-y-z stage motor and the three linear encoders that read the stage position. This code is largely based and build on code written by Craig Lage for the same stage when it was controlled by the Storm system.
 
 import time, fcntl, serial, struct
+import StagePosition
 
 class Stage(object):
     def __init__(self):
@@ -25,7 +26,9 @@ class Stage(object):
         self.initialize_serial()
         self.initialize_encoders()
         
-        self.current_pos=[0,0,0]
+        self.initial_pos=StagePosition.last_pos
+        self.current_pos=self.initial_pos
+        
         return
 
     def initialize_serial(self):
@@ -116,12 +119,13 @@ class Stage(object):
         return self.comm_status
 
     def zero_encoders(self):
-        """ Reset the encoder values to zero.
+        """ Reset the encoder values to zero. Make the StagePosition.py log the current position as [0,0,0].
         
         returns: The new encoder position readout."""
         for i in range(3):
             self.fd_channel[i].write(b'\x00\x00\x00') # Write zeros to 24 bit PR register
             fcntl.ioctl(self.fd_channel[i], self.LOAD_CMD_REG, self.TRAN_PR_CNTR) # Transfers the PR register to the counter
+        self.initial_pos=[0,0,0]
         read_pos=self.read_encoders()
         return read_pos
 
@@ -141,12 +145,16 @@ class Stage(object):
                     signed_value = signed_value - 2**24
                 read_pos[i] = signed_value
                 max_diff = abs(last_read_pos - read_pos[i])
-            return read_pos
+        self.current_pos=[self.initial_pos[i]+read_pos[i] for i in range(3)]
+        file = open('/home/ccd/ucd-scripts/python-lib/StagePosition.py', 'w')
+        file.write("last_pos="+str(self.current_pos))
+        file.close()
+        return self.current_pos
 
     def move_stage(self,x=0,y=0,z=0):
-        """Moves the stage a number of stepper pulses given by the value [x, y, z].
+        """Moves the stage a number of encoder steps (10um) given by the value [x, y, z].
         
-        input: x,y,z - the three values that tell the stage how far to move in x, y, and z relative to the initial position.
+        input: x,y,z - the three values that tell the stage how far to move in x, y, and z relative to the initial position. Lowest non zero value is 2.54 since the stage steps in 0.001in steps and the encoders read 10um steps. Do not expect sub 3 resolution in movement.
         
         returns: The new encoder position readout."""
         set_pos=[int(x/2.54),int(y/2.54),int(z/2.54)]
@@ -156,31 +164,65 @@ class Stage(object):
             #print("Moving stage %s by %s steps\n"%(self.POS_NAME[i], set_pos[i]))
             self.ser.write(('F,C'+self.STEPPER_NAME[i]+str(set_pos[i])+',R').encode())
             time.sleep(0.5)
-        time.sleep(5)
+        time.sleep(0.5)
         new_pos=self.read_encoders()
-        self.current_pos=new_pos
         return new_pos
         
-    def go_to(self,x=None,y=None,z=None):
+    def go_to(self,x=None,y=None,z=None,focus=False):
         '''Moves the stage to an absolute position from the positive z direction.
         
         input: x,y,z = the absolute x,y, and z values relative to starting the script that you want to move to. It will approach these from the +i hat direction.
         
         returns: The new Encoder position readout.'''
-        pos=self.read_encoders()
         if x==None:
             x=self.current_pos[0]
         if y==None:
             y=self.current_pos[1]
         if z==None:
             z=self.current_pos[2]
-        set_pos=[x,y,z]       
-        overshoot=50
-        pos=self.move_stage(x=set_pos[0]-pos[0]+overshoot,y=set_pos[1]-pos[1]+overshoot,z=set_pos[2]-pos[2]+overshoot)
-        for i in range(3):
-            while pos[i]<set_pos[i]:
-                extra_move=[0,0,0]
-                extra_move[i]=overshoot
-                pos=self.move_stage(x=extra_move[0],y=extra_move[1],z=extra_move[2])
-            while abs(pos[i]-set_pos[i])>10:
-                return
+        xinit=x
+        yinit=y
+        zinit=z
+        
+        maxdiff=100
+        maxtries=10
+        if focus==True:
+            overshoot=200
+            tries=0
+            while (abs(self.current_pos[0]-xinit)>maxdiff or abs(self.current_pos[1]-yinit)>maxdiff or abs(zinit-self.current_pos[2]+overshoot)>maxdiff):
+                x=(xinit-self.current_pos[0])/2
+                y=(yinit-self.current_pos[1])/2
+                z=(zinit-self.current_pos[2]+overshoot)/2
+                pos=self.move_stage(x=x,y=y,z=z)
+                time.sleep(0.5)
+                x=xinit-self.current_pos[0]
+                y=yinit-self.current_pos[1]
+                z=zinit-self.current_pos[2]+overshoot
+                pos=self.move_stage(x=x,y=y,z=z)
+                time.sleep(0.5)
+            while self.current_pos[2]>zinit and abs(self.current_pos[2]-zinit)>maxdiff:
+                z=(zinit-self.current_pos[2])/2
+                x=(xinit-self.current_pos[0])/2
+                y=(yinit-self.current_pos[1])/2
+                pos=self.move_stage(x=x,y=y,z=z)
+                time.sleep(0.5)
+                x=xinit-self.current_pos[0]
+                y=yinit-self.current_pos[1]
+                z=zinit-self.current_pos[2]
+                pos=self.move_stage(x=x,y=y,z=z)
+                time.sleep(0.5)
+                tries+=1
+        else:
+            while abs(self.current_pos[0]-xinit)>maxdiff or abs(self.current_pos[1]-yinit)>maxdiff or abs(self.current_pos[2]-zinit)>maxdiff:
+                x=(xinit-self.current_pos[0])/2
+                y=(yinit-self.current_pos[1])/2
+                z=(zinit-self.current_pos[2])/2
+                pos=self.move_stage(x=x,y=y,z=z)
+                time.sleep(0.5)
+                x=xinit-self.current_pos[0]
+                y=yinit-self.current_pos[1]
+                z=zinit-self.current_pos[2]
+                pos=self.move_stage(x=x,y=y,z=z)
+                time.sleep(0.5)
+        return self.current_pos
+        

@@ -16,7 +16,12 @@ def sanityCheck():
 
 def openShutter(exposure):
 
-    sanityCheck()
+    try:
+        sanityCheck()
+    except RuntimeError:
+        logger.warning("Shutter in unknown state, attempting to close.")
+        shutter.close()
+        time.sleep(SHUTTERDELAY)
     logger.debug("Open shutter for {0} seconds".format(exposure))
     shutter.open()
     time.sleep(exposure)
