@@ -1,7 +1,7 @@
 #!/usr/bin/env ccs-script
 import sys,time
 import SphereConfig
-from argparse import ArgumentParser
+#from argparse import ArgumentParser
 
 ## Creates a Sphere object and initializes socket connections
 sphere = SphereConfig.Sphere()
@@ -15,7 +15,7 @@ sphere.turn_light_on()
 print "Light turned on."
 
 #you can change the light intensity between 0% and 100% intensity by changin the shutter position. >99 and <1 are all the way open and closed. We have not recently tested how accurate this is.
-sphere.set_light_intensity(20)
+sphere.set_light_intensity(99)
 print "Light intensity set to 20"
 
 #you can read the photodiode output

@@ -32,6 +32,9 @@ class Sphere(object):
         self.Tolerance = 0.05 # Checks that settings are equal to what was requested 
                          # within this tolerance.
         self.light_intensity = 0.0
+        
+        self.Initialize_Light_Socket()
+        self.Initialize_Shutter_Socket()
                          
         return
 
@@ -209,7 +212,7 @@ class Sphere(object):
         else:
             return s
 
-    def VA_Set_Light_Intensity(self, light_intensity):
+    def Set_Light_Intensity(self, light_intensity):
         """ Opens the shutter a specified amount given the input light intensity value.  Assumes 0.0 < Value < 100."""
         print("LightIntensity = %f"%light_intensity )
         if light_intensity < 0.0 or light_intensity > 100.0:

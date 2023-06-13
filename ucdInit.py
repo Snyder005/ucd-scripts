@@ -42,13 +42,8 @@ elif hvSwitchOn and ccdState == 'OFF':
 hvSwitchOn = fp.sendSynchCommand("R22/Reb0 isBackBiasOn")
 if not hvSwitchOn:
     fp.sendSynchCommand(Duration.ofSeconds(300), "R22/Reb0 powerCCDsOn")
-    ccdState = fp.sendSynchCommand("R22/Reb0 getCCDsPowerState")
-
-    if ccdState == 'OFF':
-        raise RuntimeError("CCD failed to power on.")
-    else:
-        print "CCD power {0}.".format(ccdState.lower())
-        print "ODV = {0:.1f} Volts".format(fp.sendSynchCommand("R22/Reb0/S00/ODV getValue"))
-        print "OGV = {0:.1f} Volts".format(fp.sendSynchCommand("R22/Reb0/S00/OGV getValue"))
-        print "RDV = {0:.1f} Volts".format(fp.sendSynchCommand("R22/Reb0/S00/RDV getValue"))
-        print "GDV = {0:.1f} Volts".format(fp.sendSynchCommand("R22/Reb0/S00/GDV getValue"))
+    print "CCD power {0}.".format(ccdState.lower())
+    print "ODV = {0:.1f} Volts".format(fp.sendSynchCommand("R22/Reb0/S00/ODV getValue"))
+    print "OGV = {0:.1f} Volts".format(fp.sendSynchCommand("R22/Reb0/S00/OGV getValue"))
+    print "RDV = {0:.1f} Volts".format(fp.sendSynchCommand("R22/Reb0/S00/RDV getValue"))
+    print "GDV = {0:.1f} Volts".format(fp.sendSynchCommand("R22/Reb0/S00/GDV getValue"))

@@ -13,6 +13,7 @@ import time
 import sys
 import socket
 import logging
+import SphereCalibration
 
 class Sphere(object):
     """A client-side connection to a light, photodiode, and variable aperture.
@@ -47,6 +48,22 @@ class Sphere(object):
  
         self.initialize_light_socket()
         self.initialize_aperture_socket()
+        with open('/home/ccd/ucd-scripts/lib/SphereLookUpTable.txt') as f:
+            self.intense=f.readlines()
+        self.steps=[]
+        for i in range(len(self.intense)):
+            self.intense[i]=float(self.intense[i])
+            self.steps.append(self.intense[0]*i)
+        self.steps=self.steps[:-1]
+        self.intense=self.intense[1:]
+        imax=max(self.intense)
+        self.intense=[100*i/imax for i in self.intense]
+        i=0
+        while self.intense[i]<100:
+            i+=1
+        self.intense=self.intense[i:]
+        self.steps=self.steps[i:]
+        self.intense_length=len(self.intense)
 
     def close_sockets(self):
         """Close the light and aperture socket."""
@@ -151,7 +168,7 @@ class Sphere(object):
         time.sleep(delay_time)
 
     def drive_aperture(self, move_value, num_waits=20):
-        """Moves the variable aperture to the specified value.
+        """Moves the variable aperture by the specified value.
 
         Parameters
         ----------
@@ -204,7 +221,7 @@ class Sphere(object):
             Light intensity in percentage (between 0 and 100.)
         """
         sp = self.calculate_aperture_position(light_intensity)
-        aperture_position = int(12000 * sp / 100) - 12000
+        aperture_position = int(sp)
 
         ## Open aperture all the way
         self.drive_aperture(12000)
@@ -213,7 +230,7 @@ class Sphere(object):
         ## Open aperture to desired amount
         self.drive_aperture(aperture_position)
         time.sleep(0.5)
-        self.light_intensity = light_intensity
+        self.light_intensity = light_intensity        
 
     def read_photodiode(self):
         """ Read the photodiode current.
@@ -231,14 +248,17 @@ class Sphere(object):
         time.sleep(0.1)
         
         return diode_current
+    
+    def calibrate_aperature(self):
+        return
 
-    @staticmethod
-    def calculate_aperture_position(light_intensity):
+    #@staticmethod
+    def calculate_aperture_position(self, light_intensity):
         """Calculate the required aperture position (in %) for given light 
         intensity (in %.)
 
-        Uses I = A + B tanh(C s + D), where s is the aperture position. 
-        Constants come from fit to photometer data.
+        Uses I = A + B tan(C s + D), where s is the aperture position. 
+        Constants come from fit to photometer data. These settings are imported from SphereCalibration.py
 
         Parameters
         ----------
@@ -255,19 +275,18 @@ class Sphere(object):
         ValueError
             Raised if light intensity is not between 0 and 100."
         """
-        if light_intensity < 0.0 or light_intensity > 100.0:
+        i=0
+        intense_value=100
+        while light_intensity<intense_value and i<self.intense_length-1:
+            intense_value=self.intense[i]
+            i+=1
+            
+        '''if light_intensity < 0.0 or light_intensity > 100.0:
             raise ValueError("Light Intensity value {0} not between 0 and 100.".format(light_intensity))
 
-        A = 4.58586028
-        B = 4.56817782
-        C = 0.06850201
-        D = -3.25073115
-        Ap = A / (A + B)
-        Bp = B / (A + B)
-
-        if light_intensity > 99:
-            position = 100.0
-        else:
-            position = (math.atanh((light_intensity / 100.0 - Ap) / Bp) - D) / C
+        #if light_intensity > 99:
+        #   position = 100.0
+        #else:
+        position = (math.tan((light_intensity - SphereCalibration.A) / SphereCalibration.B) - SphereCalibration.D) / SphereCalibration.C'''
         
-        return position
+        return self.steps[i]

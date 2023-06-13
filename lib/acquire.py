@@ -191,6 +191,7 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         self.lolim = options.getFloat('lolim', 1.0)
         self.intensity = 0.0
         ucd_bench.turnLightOn()
+        self.current = 0.0
 
         logger.info("Biases per Flat: {0}".format(self.bcount))
 
@@ -206,10 +207,10 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
             if self.intensity != intensity:
                 ucd_bench.setLightIntensity(intensity)
                 self.intensity = intensity
-        
-            ## Compute exposure time
-            current = ucd_bench.readPhotodiodeCurrent()
+                current = ucd_bench.readPhotodiodeCurrent()
+
             exposure = self.compute_exposure_time(e_per_pixel, current)
+            self.current = current
             logger.info("Flats: {0}, Target Signal: {1}".format(count, e_per_pixel))
             logger.debug("Photodiode: {0}".format(current))
 
@@ -233,7 +234,8 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
     def create_fits_header_data(self, exposure, image_type):
         data = super(FlatFieldTestCoordinator, self).create_fits_header_data(exposure, image_type)
         if image_type != 'BIAS':
-            data.update({'FILTER' : self.wl_filter})
+            data.update({'FILTER' : self.wl_filter,
+                         'PDIODE' : self.current})
         return data
 
 class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
@@ -304,33 +306,49 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
         self.mask = options.get('mask')
         self.exposures = options.getList('expose')
         self.points = options.getList('point')
-        self.stagex = 0
-        self.stagey = 0
-        self.stagez = 0
+        self.intensity = 0.0
+        ucd_bench.turnLightOn()
+        self.current = 0.0
+        self.get_current_position()
 
         logger.info("Mask: {0}, Image Count: {1}, Bias Count: {2}".format(self.mask, self.imcount, self.bcount))
+
+    def get_current_position(self):
+        with open('/home/ccd/ucd-scripts/python-lib/StagePosition.py', 'r') as f:
+            lines = f.readlines()
+            x, y, z = lines[0].split("=")[1][1:-1].split(",")
+        self.stagex = int(x)
+        self.stagey = int(y)
+        self.stagez = int(z)
 
     def take_images(self):
         """Take multiple spot images."""
         def moveTo(point):
             """A wrapper to 'moveTo' to store the current position."""
             splittedpoints = point.split()
-            x = float(splittedpoints[0])
-            y = float(splittedpoints[1])
-            z = float(splittedpoints[2])
+            x = int(float(splittedpoints[0]))
+            y = int(float(splittedpoints[1]))
+            z = int(float(splittedpoints[2]))
             if self.stagex == x and self.stagey == y and self.stagez == z:
                 return
             else:
                 ucd_stage.moveTo(x, y, z)
-                self.stagex = x
-                self.stagey = y
-                self.stagez = z
+                self.get_current_position()
 
         for point in self.points:
             moveTo(point)
 
-            for exposure in self.exposures:
+            for item in self.exposures:
+                
+                exposure, intensity = item.split()
                 exposure = float(exposure)
+                intensity = float(intensity)
+
+                if self.intensity != intensity:
+                    ucd_bench.setLightIntensity(intensity)
+                    self.intensity = intensity
+                    self.current = ucd_bench.readPhotodiodeCurrent()
+
                 expose_command = lambda: ucd_bench.openShutter(exposure)
                 for i in range(self.imcount):
                     self.take_bias_plus_image(exposure, expose_command)
@@ -340,7 +358,8 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
         if image_type != 'BIAS':
             data.update({'STAGEX' : self.stagex,
                          'STAGEY' : self.stagey,
-                         'STAGEZ' : self.stagez})
+                         'STAGEZ' : self.stagez,
+                         'PDIODE' : self.current})
         return data
 
 def do_bias(options):
