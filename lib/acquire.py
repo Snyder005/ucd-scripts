@@ -234,8 +234,8 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
     def create_fits_header_data(self, exposure, image_type):
         data = super(FlatFieldTestCoordinator, self).create_fits_header_data(exposure, image_type)
         if image_type != 'BIAS':
-            data.update({'FILTER' : self.wl_filter,
-                         'PDIODE' : self.current})
+            data.update({'FilterName' : self.wl_filter,
+                         'PdCurrent' : self.current})
         return data
 
 class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
@@ -356,10 +356,10 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
     def create_fits_header_data(self, exposure, image_type):
         data = super(SpotTestCoordinator, self).create_fits_header_data(exposure, image_type)
         if image_type != 'BIAS':
-            data.update({'STAGEX' : self.stagex,
-                         'STAGEY' : self.stagey,
-                         'STAGEZ' : self.stagez,
-                         'PDIODE' : self.current})
+            data.update({'StageX' : self.stagex,
+                         'StageY' : self.stagey,
+                         'StageZ' : self.stagez,
+                         'PdCurrent' : self.current})
         return data
 
 def do_bias(options):

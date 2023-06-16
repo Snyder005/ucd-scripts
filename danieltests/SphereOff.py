@@ -16,5 +16,5 @@ print "Initial current: {0:.3E}".format(current)
 
 #you can turn on the light. 
 sphere.turn_light_off()
-print "Light turned on."
+print "Light turned off."
 

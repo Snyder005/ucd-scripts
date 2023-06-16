@@ -5,9 +5,11 @@ import SphereConfig
 ## Creates a Sphere object and initializes socket connections
 sphere = SphereConfig.Sphere()
 
-##Turn on the sphere
-sphere.turn_light_on()
 
+sphere.calibrate_aperature()
+
+'''##Turn on the sphere
+sphere.turn_light_on()
 
 
 ##
@@ -36,4 +38,4 @@ for i in range(abs(12000/step)+2):
 #Turn off the Sphere at the end
 sphere.turn_light_off()
 
-print("Done. Took: "+str(time.time()-stime)+"s for "+str(abs(12000/step))+" steps")
+print("Done. Took: "+str(time.time()-stime)+"s for "+str(abs(12000/step))+" steps")'''

@@ -4,7 +4,7 @@ import Stage
 
 stage = Stage.Stage()
 
-
+time.sleep(5)
 pos=stage.read_encoders()
 print(pos)
 x=0

@@ -230,7 +230,33 @@ class Sphere(object):
         ## Open aperture to desired amount
         self.drive_aperture(aperture_position)
         time.sleep(0.5)
-        self.light_intensity = light_intensity        
+        self.light_intensity = light_intensity
+        
+    def read_photodiode1(self):
+        """ Read the photodiode current.
+
+        Returns
+        -------
+        diode_current : `float`
+            Photodiode current in amps.
+        """
+        ## First clear
+        self.light_socket.send(b"D\r")
+        dummy_val = self.light_socket.recv(100)
+        #print(dummy_val)
+        time.sleep(0.2)
+
+        ## Second clear
+        #self.light_socket.send(b"D\r")
+        #dummy_val = self.light_socket.recv(100)
+        #time.sleep(0.2)
+
+        ## Get photodiode current
+        self.light_socket.send(b"D\r")
+        diode_current = float(self.light_socket.recv(100).rstrip('\r'))
+        time.sleep(0.1)
+        
+        return diode_current        
 
     def read_photodiode(self):
         """ Read the photodiode current.
@@ -240,16 +266,55 @@ class Sphere(object):
         diode_current : `float`
             Photodiode current in amps.
         """
-        self.light_socket.send(b"D\r")
-        dummy_val = self.light_socket.recv(100)
-        time.sleep(0.2)
-        self.light_socket.send(b"D\r")
-        diode_current = float(self.light_socket.recv(100).rstrip('\r'))
-        time.sleep(0.1)
-        
+
+        ## Get photodiode current
+        diode_current=0
+        numtries=0
+        while numtries<=5 and diode_current==0:
+            self.light_socket.send(b"D\r")
+            prefloat = (self.light_socket.recv(100).rstrip('\r'))
+            time.sleep(0.2)
+            if prefloat=="R0~PS2~1" or 'R0~PS2~0':
+                numtries+=1
+            else:
+                diode_current=float(prefloat)
+        diode_current=float(prefloat)
         return diode_current
     
-    def calibrate_aperature(self):
+    def calibrate_aperature(self,step=30):
+        """Creates the look up table for how far open the light aperature should be to get a desired intensity.
+        
+        Parameters
+        ----------
+        step : `int`
+            The number of stepper motor steps to move by. By default this is 30 which gives sub percent level resolution and will take about an hour to run."""
+        stime=time.time()
+        self.turn_light_on()
+        step=-1*step
+        
+        ##Make the Look Up Table File
+        file = open('/home/ccd/ucd-scripts/lib/SphereLookUpTable.txt', 'w')
+        out=str(step)+"\n"
+        file.write(out)
+        file.close()
+        
+        n=0
+        totalsteps=int(abs(12000/step)+2)
+        tenth=int(totalsteps/10)
+        for i in range(totalsteps):
+            self.drive_aperture(12000)
+            time.sleep(0.5)
+            self.drive_aperture(step*i)
+            current = self.read_photodiode()
+            file = open('/home/ccd/ucd-scripts/lib/SphereLookUpTable.txt', 'a')
+            file.write(str(current)+'\n')
+            file.close()
+            if i%tenth==0:
+                print(str(10*i/tenth)+" Percent done. Took "+str(time.time()-stime)+"s")
+            time.sleep(0.5)
+        #Turn off the Sphere at the end
+	sphere.turn_light_off()
+	print("Done. Took: "+str(time.time()-stime)+"s for "+str(abs(12000/step))+" steps")
         return
 
     #@staticmethod
@@ -257,8 +322,7 @@ class Sphere(object):
         """Calculate the required aperture position (in %) for given light 
         intensity (in %.)
 
-        Uses I = A + B tan(C s + D), where s is the aperture position. 
-        Constants come from fit to photometer data. These settings are imported from SphereCalibration.py
+        Uses A look up table (SphereLookUpTable.txt) to find the number of steps the motor must move to reach a desired percentage light intensity.
 
         Parameters
         ----------
@@ -268,25 +332,11 @@ class Sphere(object):
         Returns
         -------
         position : `float`
-            Aperture position in percentage.
-
-        Raises
-        ------
-        ValueError
-            Raised if light intensity is not between 0 and 100."
+            The motor steps to be moved after a move of 12000 steps to open the shutter completely.
         """
         i=0
         intense_value=100
         while light_intensity<intense_value and i<self.intense_length-1:
             intense_value=self.intense[i]
-            i+=1
-            
-        '''if light_intensity < 0.0 or light_intensity > 100.0:
-            raise ValueError("Light Intensity value {0} not between 0 and 100.".format(light_intensity))
-
-        #if light_intensity > 99:
-        #   position = 100.0
-        #else:
-        position = (math.tan((light_intensity - SphereCalibration.A) / SphereCalibration.B) - SphereCalibration.D) / SphereCalibration.C'''
-        
+            i+=1     
         return self.steps[i]
