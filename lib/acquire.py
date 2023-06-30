@@ -189,7 +189,7 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         self.wl_filter = options.get('wl')
         self.hilim = options.getFloat('hilim', 999.0)
         self.lolim = options.getFloat('lolim', 1.0)
-        self.intensity = 0.0
+        self.intensity = 10.0
         ucd_bench.turnLightOn()
         self.current = 0.0
 
