@@ -52,7 +52,46 @@ maximum_voltage_difference = 0.33
 
 ###############################################################################
 # Define the functions for the Power Supplies
+def power_reb5_on():
 
+    supplies = PowerSupplyConfig.Power_Supplies()
+
+    check=supplies.check_connections() #check whether supplies are connected.
+    if check==True:
+        reb=supplies.power_setup()
+        print(reb)
+    else:
+        raise RuntimeError("REB5 Power shutdown failed due to connection issue.")
+
+def power_reb5_off():
+    supplies = PowerSupplyConfig.Power_Supplies()
+
+    check=supplies.check_connections() #check whether supplies are connected.
+    if check==True:
+        reb=supplies.power_shutdown()
+        print(reb)
+    else:
+        raise RuntimeError("REB5 Power shutdown failed due to connection issue.")
+
+def power_bss_on():
+
+    supplies = PowerSupplies()
+    check=supplies.check_connections() #check whether supplies are connected.
+    if check==True:
+        bss=supplies.bss_on()
+        print(bss)
+    else:
+        raise RuntimeError("BSS power on failed due to connection issue.")
+
+def power_bss_off():
+    supplies = PowerSupplyConfig.Power_Supplies()
+
+    check=supplies.check_connections() #check whether supplies are connected.
+    if check==True:
+        bss=supplies.bss_off()
+        print(bss)
+    else:
+        raise RuntimeError("BSS supply shutdown failed due to connection issue.") 
 
 class Power_Supplies(object):
     def __init__(self):

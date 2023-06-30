@@ -40,7 +40,6 @@ def power_ccds_on():
 def power_ccds_off():
 
     fp = CCS.attachSubsystem("ucd-fp")
-    supplies = PowerSupplyConfig.Power_Supplies()
 
     ## Check state of focal plane
     hvSwitchOn = fp.sendSynchCommand("R22/Reb0 isBackBiasOn")
@@ -55,6 +54,7 @@ def power_ccds_off():
     
     if hvSwitchOn:
         fp.setSynchCommand("R22/Reb0 setBackBias false")
+        PowerSupplyConfig.power_bss_off()
 
     hvSwitchOn = fp.sendSynchCommand("R22/Reb0 isBackBiasOn")
     if not hvSwitchOn:
