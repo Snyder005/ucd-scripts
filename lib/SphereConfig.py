@@ -13,7 +13,6 @@ import time
 import sys
 import socket
 import logging
-import SphereCalibration
 
 class Sphere(object):
     """A client-side connection to a light, photodiode, and variable aperture.
@@ -48,6 +47,8 @@ class Sphere(object):
  
         self.initialize_light_socket()
         self.initialize_aperture_socket()
+        
+        #load the lookup table from most recent calibration
         with open('/home/ccd/ucd-scripts/lib/SphereLookUpTable.txt') as f:
             self.intense=f.readlines()
         self.steps=[]

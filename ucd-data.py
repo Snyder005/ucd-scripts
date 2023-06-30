@@ -75,13 +75,9 @@ def main(cfgfile, run=None):
 
 if __name__ == '__main__':
 
-    parser = ArgumentParser(sys.argv[0])
-    parser.add_argument('cfgfile', type=str, help="Data acquisition config file.")
-    parser.add_argument('--run', type=str, default=None, help="Run number.")
-
-    if len(sys.argv) == 1:
-        parser.print_help()
-        exit(1)
+    parser = ArgumentParser(sys.argv[0], add_help=False)
+    parser.add_argument('cfgfile', type=str)
+    parser.add_argument('--run', type=str, default=None)
 
     args = parser.parse_args()
     main(args.cfgfile, args.run)

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #TEMPEST IMAGING STARTUP SCRIPT
 
 # This script should be run after a system reset it does the following:
