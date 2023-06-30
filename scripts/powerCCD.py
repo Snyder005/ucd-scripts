@@ -1,6 +1,7 @@
 #!/usr/bin/env ccs-script
 import argparse
 import sys
+import time
 
 from org.lsst.ccs.scripting import CCS
 from java.time import Duration
@@ -31,11 +32,9 @@ def power_ccds_on():
     if not hvSwitchOn:
         fp.sendSynchCommand(Duration.ofSeconds(300), "R22/Reb0 powerCCDsOn")
         ccdState = fp.sendSynchCommand("R22/Reb0 getCCDsPowerState")
-        print "CCD power {0}.".format(ccdState.lower())
-        print "ODV = {0:.1f} Volts".format(fp.sendSynchCommand("R22/Reb0/S00/ODV getValue"))
-        print "OGV = {0:.1f} Volts".format(fp.sendSynchCommand("R22/Reb0/S00/OGV getValue"))
-        print "RDV = {0:.1f} Volts".format(fp.sendSynchCommand("R22/Reb0/S00/RDV getValue"))
-        print "GDV = {0:.1f} Volts".format(fp.sendSynchCommand("R22/Reb0/S00/GDV getValue"))
+        return True
+
+    return False    
 
 def power_ccds_off():
 
@@ -59,8 +58,13 @@ def power_ccds_off():
     hvSwitchOn = fp.sendSynchCommand("R22/Reb0 isBackBiasOn")
     if not hvSwitchOn:
         fp.sendSynchCommand("R22/Reb0 powerCCDsOff")
+        print "Waiting 5.0 seconds."
+        time.sleep(5.0)
         ccdState = fp.sendSynchCommand("R22/Reb0 getCCDsPowerState")
         print "CCD power {0}.".format(ccdState.lower())
+        return True
+
+    return False
 
 if __name__ == '__main__':
 
@@ -73,6 +77,6 @@ if __name__ == '__main__':
     state = args.on and args.off
 
     if state:
-        power_ccds_on()
+        print(power_ccds_on())
     else:
-        power_ccds_off()
+        print(power_ccds_off())

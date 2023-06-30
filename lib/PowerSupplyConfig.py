@@ -54,7 +54,7 @@ maximum_voltage_difference = 0.33
 # Define the functions for the Power Supplies
 def power_reb5_on():
 
-    supplies = PowerSupplyConfig.Power_Supplies()
+    supplies = Power_Supplies()
 
     check=supplies.check_connections() #check whether supplies are connected.
     if check==True:
@@ -64,7 +64,8 @@ def power_reb5_on():
         raise RuntimeError("REB5 Power shutdown failed due to connection issue.")
 
 def power_reb5_off():
-    supplies = PowerSupplyConfig.Power_Supplies()
+
+    supplies = Power_Supplies()
 
     check=supplies.check_connections() #check whether supplies are connected.
     if check==True:
@@ -75,7 +76,7 @@ def power_reb5_off():
 
 def power_bss_on():
 
-    supplies = PowerSupplies()
+    supplies = Power_Supplies()
     check=supplies.check_connections() #check whether supplies are connected.
     if check==True:
         bss=supplies.bss_on()
@@ -84,7 +85,8 @@ def power_bss_on():
         raise RuntimeError("BSS power on failed due to connection issue.")
 
 def power_bss_off():
-    supplies = PowerSupplyConfig.Power_Supplies()
+
+    supplies = Power_Supplies()
 
     check=supplies.check_connections() #check whether supplies are connected.
     if check==True:

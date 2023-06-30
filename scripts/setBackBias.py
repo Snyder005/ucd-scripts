@@ -9,31 +9,36 @@ from org.lsst.ccs.scripting import CCS
 
 import PowerSupplyConfig
 
-def power_bss_on():
+def set_backbias_on():
 
     fp = CCS.attachSubsystem("ucd-fp")
+
+    ## Check CCD state
     ccdState = fp.sendSynchCommand("R22/Reb0 getCCDsPowerState")
-    
     if ccdState == 'OFF':
         raise RuntimeError("CCD is not powered on!")
 
-    PowerSupplyConfig.power_bbs_on()
+    PowerSupplyConfig.power_bss_on()
     print "Setting back bias switch on."
-    fp.setSynchCommand("R22/Reb0 setBackBias True")
+    fp.sendSynchCommand("R22/Reb0 setBackBias True")
 
-def power_bss_off():
+    return True
+
+def set_backbias_off():
 
     fp = CCS.attachSubsystem("ucd-fp")
     ccdState = fp.sendSynchCommand("R22/Reb0 getCCDsPowerState")
     
     if ccdState == 'OFF':
-        print "CCD is power off but back bias was on!"
+        print "CCD was powered off but back bias was on!"
 
     print "Setting back bias switch off."
-    fp.setSynchCommand("R22/Reb0 setBackBias false")
-    PowerSupplyConfig.power_bbs_off()
+    fp.sendSynchCommand("R22/Reb0 setBackBias false")
+    PowerSupplyConfig.power_bss_off()
 
-def __name__ == '__main__':
+    return True
+
+if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(sys.argv[0])
     group = parser.add_mutually_exclusive_group(required=True)
@@ -44,6 +49,6 @@ def __name__ == '__main__':
     state = args.on and args.off
 
     if state:
-        power_bss_on()
+        print(set_backbias_on())
     else:
-        power_bss_off()
+        print(set_backbias_off())

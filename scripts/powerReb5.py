@@ -8,14 +8,6 @@
 import argparse
 import PowerSupplyConfig
 
-def power_reb5_on():
-
-    PowerSupplyConfig.power_setup()
-
-def power_reb5_off():
-
-    PowerSupplyConfig.power_shutdown()
-
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(sys.argv[0])
@@ -27,7 +19,6 @@ if __name__ == '__main__':
     state = args.on and args.off
 
     if state:
-        power_reb5_on()
+        PowerSupplyConfig.power_reb5_on()
     else:
-        power_reb5_off()
-
+        PowerSupplyConfig.power_reb5_off()
