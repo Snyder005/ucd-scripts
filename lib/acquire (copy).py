@@ -306,8 +306,8 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
         self.mask = options.get('mask')
         self.exposures = options.getList('expose')
         self.points = options.getList('point')
-        self.intensity = 10.0
-        #ucd_bench.turnLightOn()
+        self.intensity = 0.0
+        ucd_bench.turnLightOn()
         self.current = 0.0
         self.get_current_position()
 
