@@ -189,7 +189,7 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         self.wl_filter = options.get('wl')
         self.hilim = options.getFloat('hilim', 999.0)
         self.lolim = options.getFloat('lolim', 1.0)
-        self.intensity = 10.0
+        self.intensity = 30.0
         ucd_bench.turnLightOn()
         self.current = 0.0
 
@@ -306,8 +306,8 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
         self.mask = options.get('mask')
         self.exposures = options.getList('expose')
         self.points = options.getList('point')
-        self.intensity = 0.0
-        ucd_bench.turnLightOn()
+        self.intensity = 30.0
+        #ucd_bench.turnLightOn()
         self.current = 0.0
         self.get_current_position()
 

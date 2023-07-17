@@ -6,7 +6,6 @@
 #This code interfaces and controls the x-y-z stage motor and the three linear encoders that read the stage position. This code is largely based and build on code written by Craig Lage for the same stage when it was controlled by the Storm system.
 
 import time, fcntl, serial, struct
-import numpy as np
 import StagePosition
 
 class Stage(object):
@@ -137,7 +136,7 @@ class Stage(object):
         max_diff = 100
         read_pos=[-9999999,-9999999,-9999999]
         while max_diff > 1:
-            time.sleep(.3)
+            time.sleep(0.2)
             for i in range(3):
                 last_read_pos = read_pos[i]
                 value = self.fd_channel[i].read(3)+b'\x00' # read the 24 bit register (3 bytes) and add a fourth byte to make it an integer.
@@ -170,7 +169,7 @@ class Stage(object):
         return new_pos
         
     def go_to(self,x=None,y=None,z=None,focus=False):
-        '''Moves the stage to an absolute position from the positive z direction within 10um.
+        '''Moves the stage to an absolute position from the positive z direction.
         
         input: x,y,z = the absolute x,y, and z values relative to starting the script that you want to move to. It will approach these from the +i hat direction.
         
@@ -185,33 +184,23 @@ class Stage(object):
         yinit=y
         zinit=z
         
-        maxdiff=10
+        maxdiff=100
         maxtries=10
-        halflimit=500 #prevents Zeno's paradox
         if focus==True:
             overshoot=200
-            zinit=zinit+overshoot
-        tries=0
-        while (abs(self.current_pos[0]-xinit)>maxdiff+halflimit or abs(self.current_pos[1]-yinit)>maxdiff+halflimit or abs(zinit-self.current_pos[2])>maxdiff+halflimit):
-            x=(xinit-self.current_pos[0])/2
-            y=(yinit-self.current_pos[1])/2
-            z=(zinit-self.current_pos[2])/2
-            pos=self.move_stage(x=x,y=y,z=z)
-            time.sleep(0.5)
-            
-        while (abs(self.current_pos[0]-xinit)>maxdiff or abs(self.current_pos[1]-yinit)>maxdiff or abs(zinit-self.current_pos[2])>maxdiff) and tries<maxtries:
-            x=xinit-self.current_pos[0]
-            y=yinit-self.current_pos[1]
-            z=zinit-self.current_pos[2]
-            pos=self.move_stage(x=x,y=y,z=z)
-            time.sleep(0.5)
-            tries+=1
-        
-        #move to the focus position from the positive z direction
-        if focus==True:
             tries=0
-            zinit=zinit-overshoot
-            while self.current_pos[2]>zinit and abs(self.current_pos[2]-zinit)>maxdiff and tries<maxtries:
+            while (abs(self.current_pos[0]-xinit)>maxdiff or abs(self.current_pos[1]-yinit)>maxdiff or abs(zinit-self.current_pos[2]+overshoot)>maxdiff):
+                x=(xinit-self.current_pos[0])/2
+                y=(yinit-self.current_pos[1])/2
+                z=(zinit-self.current_pos[2]+overshoot)/2
+                pos=self.move_stage(x=x,y=y,z=z)
+                time.sleep(0.5)
+                x=xinit-self.current_pos[0]
+                y=yinit-self.current_pos[1]
+                z=zinit-self.current_pos[2]+overshoot
+                pos=self.move_stage(x=x,y=y,z=z)
+                time.sleep(0.5)
+            while self.current_pos[2]>zinit and abs(self.current_pos[2]-zinit)>maxdiff:
                 z=(zinit-self.current_pos[2])/2
                 x=(xinit-self.current_pos[0])/2
                 y=(yinit-self.current_pos[1])/2
@@ -223,58 +212,17 @@ class Stage(object):
                 pos=self.move_stage(x=x,y=y,z=z)
                 time.sleep(0.5)
                 tries+=1
+        else:
+            while abs(self.current_pos[0]-xinit)>maxdiff or abs(self.current_pos[1]-yinit)>maxdiff or abs(self.current_pos[2]-zinit)>maxdiff:
+                x=(xinit-self.current_pos[0])/2
+                y=(yinit-self.current_pos[1])/2
+                z=(zinit-self.current_pos[2])/2
+                pos=self.move_stage(x=x,y=y,z=z)
+                time.sleep(0.5)
+                x=xinit-self.current_pos[0]
+                y=yinit-self.current_pos[1]
+                z=zinit-self.current_pos[2]
+                pos=self.move_stage(x=x,y=y,z=z)
+                time.sleep(0.5)
         return self.current_pos
-        
-    def go_to_exact(self,x=None,y=None,z=None):
-        '''Moves the stage to an exact absolute position from the positive z direction within 2um. Takes longer and might fail more compared to other version.
-        
-        input: x,y,z = the absolute x,y, and z values relative to starting the script that you want to move to. It will approach these from the +i hat direction.
-        
-        returns: The new Encoder position readout.'''
-        if x==None:
-            x=self.current_pos[0]
-        if y==None:
-            y=self.current_pos[1]
-        if z==None:
-            z=self.current_pos[2]
-        xinit=x
-        yinit=y
-        zinit=z
-        
-        maxdiff=0
-        maxtries=20
-        minstep=10
-        tries=0
-        while (abs(self.current_pos[0]-xinit)>maxdiff) and tries<maxtries:
-            move=(xinit-self.current_pos[0])/2
-            x=max(abs(move),3)
-            x=x*np.sign(move)
-            pos=self.move_stage(x=x)
-            tries+=1
-            time.sleep(0.5)
-            #print(1,self.current_pos)
-        
-        tries=0    
-        while (abs(self.current_pos[1]-yinit)>maxdiff) and tries<maxtries:
-            move=(yinit-self.current_pos[1])/2
-            y=max(abs(move),3)
-            y=y*np.sign(move)
-            pos=self.move_stage(y=y)
-            tries+=1
-            time.sleep(0.5)
-            #print(2,self.current_pos)
-            
-        tries=0    
-        while (abs(zinit-self.current_pos[2])>maxdiff) and tries<maxtries:
-            move=(zinit-self.current_pos[2])/2
-            z=max(abs(move),3)
-            z=z*np.sign(move)
-            pos=self.move_stage(z=z)
-            tries+=1
-            time.sleep(0.5)
-            #print(3,self.current_pos)
-            
-        return self.current_pos
-    
-    #def go_to_next_indexed_point(self,direction=-1,step=100)
         
