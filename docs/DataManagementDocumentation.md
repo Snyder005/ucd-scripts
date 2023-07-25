@@ -18,7 +18,7 @@ Currently the local data is mirrored to USDF using `rsync` after compression (se
 
 Example:
 
-    ccd@viscacha:~$  rsync -av /mnt/10TBHDD/20230620 snyder18@sdfdtn001.slac.stanford.edu:/sdf/rubin/offline/ucd
+    ccd@viscacha:~$  rsync -av /mnt/10TBHDD/20230620 snyder18@sdfdtn001.slac.stanford.edu:/sdf/data/rubin/offline/ucd
 
 The above will copy the directory `/mnt/10TBHDD/20230620` and all its contents to the directory `/sdf/rubin/offline/ucd`. The user login must have write permissions to the USDF data locations.
 
