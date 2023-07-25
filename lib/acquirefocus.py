@@ -152,6 +152,8 @@ class BiasPlusImagesTestCoordinator(TestCoordinator):
     def __init__(self, options, test_type, image_type):
         super(BiasPlusImagesTestCoordinator, self).__init__(options, test_type, image_type)
         self.bcount = int(options.get('bcount', '1'))
+        self.intensity = 10.0
+        self.current = 0.0
 
     def take_bias_plus_image(self, exposure, expose_command, image_type=None):
         """Take a bias image and a test image."""
@@ -186,11 +188,7 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         super(FlatFieldTestCoordinator, self).__init__(options, 'FLAT', 'FLAT')
         self.flats = options.getList('flat')
         self.wl_filter = options.get('wl')
-        self.hilim = options.getFloat('hilim', 999.0)
-        self.lolim = options.getFloat('lolim', 1.0)
-        self.intensity = 0.0
         ucd_bench.turnLightOn()
-        self.current = 0.0
 
         logger.info("Biases per Flat: {0}".format(self.bcount))
 
@@ -207,7 +205,7 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
             if self.intensity != intensity:
                 ucd_bench.setLightIntensity(intensity)
                 self.intensity = intensity
-                self.current = ucd_bench.readPhotodiodeCurrent()
+                current = ucd_bench.readPhotodiodeCurrent()
 
             logger.info("Flats: {0}, Exposure Time: {1}".format(count, exposure))
             logger.debug("Photodiode: {0}".format(self.current))
@@ -231,9 +229,6 @@ class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
         self.bcount = options.getInt('bcount', 10)
         self.persistence = options.getList('persistence')
         self.mask = options.get('mask')
-        self.hilim = options.getFloat('hilim', 999.0)
-        self.lolim = options.getFloat('lolim', 1.0)
-        self.intensity = 0.0
         ucd_bench.turnLightOn()
 
         logger.info("Biases per Persistence Image: {0}".format(self.bcount))
@@ -279,9 +274,7 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
         self.mask = options.get('mask')
         self.exposures = options.getList('expose')
         self.points = options.getList('point')
-        self.intensity = 0.0
-        ucd_bench.turnLightOn()
-        self.current = 0.0
+#        ucd_bench.turnLightOn()
         self.get_current_position()
 
         logger.info("Mask: {0}, Image Count: {1}, Bias Count: {2}".format(self.mask, self.imcount, self.bcount))
@@ -359,6 +352,4 @@ def do_spot(options):
     """Initialize a SpotTestCoordinator and take images."""
     logger.info("spot called {0}".format(options))
     tc = SpotTestCoordinator(options)
-    tc.take_images()
-
-
+    tc.take_images()    
