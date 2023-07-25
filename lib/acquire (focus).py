@@ -35,6 +35,7 @@ class TestCoordinator(object):
         self.clears = options.getInt('clears', 1)
         self.extra_delay = options.getFloat('extradelay', 0)
         self.description = options.get('description', None)
+        self.delete = options.getInt('delete', 1)
 
         logger.info("{0} Test Description: {1}".format(self.test_type, self.description))
 
@@ -116,7 +117,7 @@ class TestCoordinator(object):
 
             ## Remove flush bias or reorder amplifiers
             if filepath.endswith('S01.fits'):
-                if TEST_SEQ_NUM == 0 and image_type == 'BIAS':
+                if TEST_SEQ_NUM < self.delete and image_type == 'BIAS':
                     os.remove(filepath)
                     logger.debug("{0} removed.".format(filepath))
                     logger.info("Flush bias removed: {0}".format(filepath))
@@ -189,7 +190,7 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         self.wl_filter = options.get('wl')
         self.hilim = options.getFloat('hilim', 999.0)
         self.lolim = options.getFloat('lolim', 1.0)
-        self.intensity = 30.0
+        self.intensity = 10.0
         ucd_bench.turnLightOn()
         self.current = 0.0
 
@@ -306,7 +307,7 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
         self.mask = options.get('mask')
         self.exposures = options.getList('expose')
         self.points = options.getList('point')
-        self.intensity = 30.0
+        self.intensity = 10.0
         #ucd_bench.turnLightOn()
         self.current = 0.0
         self.get_current_position()
@@ -386,4 +387,4 @@ def do_spot(options):
     """Initialize a SpotTestCoordinator and take images."""
     logger.info("spot called {0}".format(options))
     tc = SpotTestCoordinator(options)
-    tc.take_images()
+    tc.take_images()    

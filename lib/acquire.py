@@ -10,8 +10,6 @@ import JFitsUtils
 logger = logging.getLogger(__name__)
 
 TEST_SEQ_NUM = 0
-CURRENT_TO_FLUX = (7.97E13, -1.16E3)
-
 
 class TestCoordinator(object):
     """Base class for taking images.
@@ -201,36 +199,23 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         for flat in self.flats:
     
             ## Get flat parameters
-            e_per_pixel, count, intensity = flat.split()
-            e_per_pixel = float(e_per_pixel)
-            count = int(count)
+            exposure, intensity, count = flat.split()
+            exposure = float(exposure)
             intensity = float(intensity)
+            count = int(count)
+
             if self.intensity != intensity:
                 ucd_bench.setLightIntensity(intensity)
                 self.intensity = intensity
-                current = ucd_bench.readPhotodiodeCurrent()
+                self.current = ucd_bench.readPhotodiodeCurrent()
 
-            exposure = self.compute_exposure_time(e_per_pixel, current)
-            self.current = current
-            logger.info("Flats: {0}, Target Signal: {1}".format(count, e_per_pixel))
-            logger.debug("Photodiode: {0}".format(current))
+            logger.info("Flats: {0}, Exposure Time: {1}".format(count, exposure))
+            logger.debug("Photodiode: {0}".format(self.current))
 
             ## Perform acquisition
             expose_command = lambda : ucd_bench.openShutter(exposure)
             for c in range(count):
                 self.take_bias_plus_image(exposure, expose_command)
-
-    def compute_exposure_time(self, e_per_pixel, current):
-
-        seconds = round(e_per_pixel/(current*CURRENT_TO_FLUX[0] + CURRENT_TO_FLUX[1]), 1)
-        if seconds>self.hilim:
-            logger.warning("Exposure time %g > hilim (%g)" % (seconds, self.hilim))
-            seconds = self.hilim
-        if seconds<self.lolim:
-            logger.warning("Exposure time %g < lolim (%g)" % (seconds, self.lolim))
-            seconds = self.lolim
-        logger.debug("Computed Exposure %g sec for e_per_pixel=%g" % (seconds, e_per_pixel))
-        return seconds
 
     def create_fits_header_data(self, exposure, image_type):
         data = super(FlatFieldTestCoordinator, self).create_fits_header_data(exposure, image_type)
@@ -256,21 +241,20 @@ class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
     def take_images(self):
 
         ## Get persistence parameters
-        e_per_pixel, intensity, n_of_dark, exp_of_dark, t_btw_darks= self.persistence[0].split()
-        e_per_pixel = float(e_per_pixel)
+        exposure, intensity, n_of_dark, exp_of_dark, t_btw_darks= self.persistence[0].split()
+        exposure = float(exposure)
         intensity = float(intensity)
+
         if self.intensity != intensity:
             ucd_bench.setLightIntensity(intensity)
-
-        ## Calculate exposure time
-        current = ucd_bench.readPhotodiodeCurrent()
-        exposure = self.compute_exposure_time(e_per_pixel, current)
+            self.intensity = intensity
+            self.current = ucd_bench.readPhotodiodeCurrent()
 
         ## Bias acquisitions
         self.take_bias_images(self.bcount)
 
         ## Flat acquisition
-        logger.info("Persistence Image Target Signal: {0}".format(e_per_pixel)) 
+        logger.info("Persistence Image Exposure Time: {0}".format(exposure)) 
         expose_command = lambda: ucd_bench.openShutter(exposure)
         file_list = super(PersistenceTestCoordinator, self).take_image(exposure, expose_command, "SPOT")
 
@@ -285,18 +269,6 @@ class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
             time.sleep(t_btw_darks)
             super(PersistenceTestCoordinator, self).take_image(exp_of_dark, lambda: time.sleep(exp_of_dark), 
                                                                image_type="DARK")
-
-    def compute_exposure_time(self, e_per_pixel, current):
-
-        seconds = round(e_per_pixel/(current*CURRENT_TO_FLUX[0] + CURRENT_TO_FLUX[1]), 1)
-        if seconds>self.hilim:
-            logger.warning("Exposure time %g > hilim (%g)" % (seconds, self.hilim))
-            seconds = self.hilim
-        if seconds<self.lolim:
-            logger.warning("Exposure time %g < lolim (%g)" % (seconds, self.lolim))
-            seconds = self.lolim
-        logger.debug("Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel))
-        return seconds
 
 class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
     """A TestCoordinator for spot/streak images."""
@@ -388,3 +360,4 @@ def do_spot(options):
     logger.info("spot called {0}".format(options))
     tc = SpotTestCoordinator(options)
     tc.take_images()
+

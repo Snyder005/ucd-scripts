@@ -176,6 +176,10 @@ class Power_Supplies(object):
                 print("ERROR: BK9184 (BSS) Not connected, please fix the address in USBaddresses.py.")
             return False
 
+    def read_BSS(self):
+        PWRBSS=self.BK9184.queryString('MEAS:VOLT? \r\n')
+        return PWRBSS
+    
     def read_volt(self,printresult=False):
         '''This function reads out the power supply voltages and returns them as a list.
 
@@ -352,7 +356,23 @@ BSS		= '''+str(voltages[7]))
         else:
             print("ERROR: You must turn on CCD voltages before BSS!")
             return False
+    
+    def bss_on_arbitrary_voltage(self,BSS_voltage):
+        '''This Function Turns on the BSS Supply with a new back bias voltage set as an argument.
         
+        return: True if on, False if not.'''
+        VN70arb=BSS_voltage
+        self.bss_on()
+        self.BK9184.write('VOLT '+ str(VN70arb)+' \r\n')
+        self.BK9184.write('OUT:LIM:VOLT '+str(VN70max)+' \r\n')
+        self.BK9184.write('OUT:LIM:CURR '+str(IN70max)+' \r\n')
+        errors=self.BK9184.queryString('SYS:ERR? \r\n')
+        if errors=='0':
+            self.BK9184.write('OUT ON \r\n')
+        else:
+            print("BSS Supply error: ",errors)
+        sleep(0.5) #sleep to let voltage reach VN70 value
+    
     def bss_off(self):
         '''This Function Turns off the BSS Supply
         
