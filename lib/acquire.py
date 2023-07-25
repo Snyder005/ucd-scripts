@@ -10,6 +10,8 @@ import JFitsUtils
 logger = logging.getLogger(__name__)
 
 TEST_SEQ_NUM = 0
+CURRENT_TO_FLUX = (7.97E13, -1.16E3)
+
 
 class TestCoordinator(object):
     """Base class for taking images.
@@ -152,6 +154,8 @@ class BiasPlusImagesTestCoordinator(TestCoordinator):
     def __init__(self, options, test_type, image_type):
         super(BiasPlusImagesTestCoordinator, self).__init__(options, test_type, image_type)
         self.bcount = int(options.get('bcount', '1'))
+        self.intensity = 0.0
+        self.current = 0.0
 
     def take_bias_plus_image(self, exposure, expose_command, image_type=None):
         """Take a bias image and a test image."""
@@ -188,9 +192,7 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         self.wl_filter = options.get('wl')
         self.hilim = options.getFloat('hilim', 999.0)
         self.lolim = options.getFloat('lolim', 1.0)
-        self.intensity = 0.0
         ucd_bench.turnLightOn()
-        self.current = 0.0
 
         logger.info("Biases per Flat: {0}".format(self.bcount))
 
@@ -199,23 +201,36 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         for flat in self.flats:
     
             ## Get flat parameters
-            exposure, intensity, count = flat.split()
-            exposure = float(exposure)
-            intensity = float(intensity)
+            e_per_pixel, count, intensity = flat.split()
+            e_per_pixel = float(e_per_pixel)
             count = int(count)
-
+            intensity = float(intensity)
             if self.intensity != intensity:
                 ucd_bench.setLightIntensity(intensity)
                 self.intensity = intensity
-                self.current = ucd_bench.readPhotodiodeCurrent()
+                current = ucd_bench.readPhotodiodeCurrent()
 
-            logger.info("Flats: {0}, Exposure Time: {1}".format(count, exposure))
-            logger.debug("Photodiode: {0}".format(self.current))
+            exposure = self.compute_exposure_time(e_per_pixel, current)
+            self.current = current
+            logger.info("Flats: {0}, Target Signal: {1}".format(count, e_per_pixel))
+            logger.debug("Photodiode: {0}".format(current))
 
             ## Perform acquisition
             expose_command = lambda : ucd_bench.openShutter(exposure)
             for c in range(count):
                 self.take_bias_plus_image(exposure, expose_command)
+
+    def compute_exposure_time(self, e_per_pixel, current):
+
+        seconds = round(e_per_pixel/(current*CURRENT_TO_FLUX[0] + CURRENT_TO_FLUX[1]), 1)
+        if seconds>self.hilim:
+            logger.warning("Exposure time %g > hilim (%g)" % (seconds, self.hilim))
+            seconds = self.hilim
+        if seconds<self.lolim:
+            logger.warning("Exposure time %g < lolim (%g)" % (seconds, self.lolim))
+            seconds = self.lolim
+        logger.debug("Computed Exposure %g sec for e_per_pixel=%g" % (seconds, e_per_pixel))
+        return seconds
 
     def create_fits_header_data(self, exposure, image_type):
         data = super(FlatFieldTestCoordinator, self).create_fits_header_data(exposure, image_type)
@@ -231,9 +246,6 @@ class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
         self.bcount = options.getInt('bcount', 10)
         self.persistence = options.getList('persistence')
         self.mask = options.get('mask')
-        self.hilim = options.getFloat('hilim', 999.0)
-        self.lolim = options.getFloat('lolim', 1.0)
-        self.intensity = 0.0
         ucd_bench.turnLightOn()
 
         logger.info("Biases per Persistence Image: {0}".format(self.bcount))
@@ -241,20 +253,21 @@ class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
     def take_images(self):
 
         ## Get persistence parameters
-        exposure, intensity, n_of_dark, exp_of_dark, t_btw_darks= self.persistence[0].split()
-        exposure = float(exposure)
+        e_per_pixel, intensity, n_of_dark, exp_of_dark, t_btw_darks= self.persistence[0].split()
+        e_per_pixel = float(e_per_pixel)
         intensity = float(intensity)
-
         if self.intensity != intensity:
             ucd_bench.setLightIntensity(intensity)
-            self.intensity = intensity
-            self.current = ucd_bench.readPhotodiodeCurrent()
+
+        ## Calculate exposure time
+        current = ucd_bench.readPhotodiodeCurrent()
+        exposure = self.compute_exposure_time(e_per_pixel, current)
 
         ## Bias acquisitions
         self.take_bias_images(self.bcount)
 
         ## Flat acquisition
-        logger.info("Persistence Image Exposure Time: {0}".format(exposure)) 
+        logger.info("Persistence Image Target Signal: {0}".format(e_per_pixel)) 
         expose_command = lambda: ucd_bench.openShutter(exposure)
         file_list = super(PersistenceTestCoordinator, self).take_image(exposure, expose_command, "SPOT")
 
@@ -270,6 +283,18 @@ class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
             super(PersistenceTestCoordinator, self).take_image(exp_of_dark, lambda: time.sleep(exp_of_dark), 
                                                                image_type="DARK")
 
+    def compute_exposure_time(self, e_per_pixel, current):
+
+        seconds = round(e_per_pixel/(current*CURRENT_TO_FLUX[0] + CURRENT_TO_FLUX[1]), 1)
+        if seconds>self.hilim:
+            logger.warning("Exposure time %g > hilim (%g)" % (seconds, self.hilim))
+            seconds = self.hilim
+        if seconds<self.lolim:
+            logger.warning("Exposure time %g < lolim (%g)" % (seconds, self.lolim))
+            seconds = self.lolim
+        logger.debug("Computed Exposure %g for e_per_pixel=%g" % (seconds, e_per_pixel))
+        return seconds
+
 class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
     """A TestCoordinator for spot/streak images."""
 
@@ -279,9 +304,7 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
         self.mask = options.get('mask')
         self.exposures = options.getList('expose')
         self.points = options.getList('point')
-        self.intensity = 0.0
         ucd_bench.turnLightOn()
-        self.current = 0.0
         self.get_current_position()
 
         logger.info("Mask: {0}, Image Count: {1}, Bias Count: {2}".format(self.mask, self.imcount, self.bcount))
@@ -359,5 +382,4 @@ def do_spot(options):
     """Initialize a SpotTestCoordinator and take images."""
     logger.info("spot called {0}".format(options))
     tc = SpotTestCoordinator(options)
-    tc.take_images()
-
+    tc.take_images()    
