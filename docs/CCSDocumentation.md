@@ -141,6 +141,84 @@ The REB5 can be used to operate 3 CCDs simultaneously, however the UC Davis Beam
 
 These will change the error on the output drain voltage zero error to 1.0 and set point tolerance to 0.3 V for all three CCD connections (Bias0, Bias1, Bias2). Additionally, the guard drain voltage set point tolerance is changed to 0.2 V for only the connected CCD (Bias1).
 
+## CCS Configurations
+
+The configuration of CCS subsystems is done using a set of `properties` files that can be found in the `${HOME}/ccs/etc` directory. 
+
+### Focal Plane Configurations
+
+* `FocalPlane_common_General.properties`
+
+Specifies a series of variables for the `imageNameService`.
+
+* `FocalPlane_common_Sequencer.properties`
+
+Used to specify and configure sequencer parameters.
+
+* `FocalPlane_v26_Sequencer.properties`
+
+Additional sequencer configurations for a specific CCS version.
+
+* `FocalPlane_ucd_General.properties`
+
+Additional specifications specific to the UCD test stand.
+
+* `FocalPlane_ucd_build.properties`
+
+Used to specify the focal plane rafts and CCD types.
+
+* `FocalPlane_common_DAQ.properties`
+
+Used to set generic `sequencerConfig` variables.
+
+* `FocalPlane_ucd_DAQ.properties`
+
+Used to set the name of the DAQ partition via `sequencerConfig/daqPartition=davis`.
+
+* `FocalPlane_ucd_Devices.properties`
+
+Used to enable/disable sensors by Reb.
+
+* `FocalPlane_ucd_HardwareId.properties`
+
+Used to specify the names and serial numbers of the Raft, REB, and CCDs.
+
+* `FocalPlane_ucd_Instrument.properties`
+
+Used to set the `instrumentConfig` variables including test stand, instrument, and camera name.
+
+* `FocalPlane_ucd_Limits.properties`
+
+Used to set the warning limits for REB voltage and current monitoring.
+
+* `FocalPlane_ucd_Rafts.properties`
+
+Used to set raft voltages and ASPIC parameters.
+
+* `FocalPlane_ucd_RaftsLimits.properties`
+
+Used to set raft voltage software limits.
+
+* `FocalPlane_ucd_RaftsPower.properties`
+
+Sets voltage and current test parameters for CCD power on.
+
+* `FocalPlane_ucd_RaftTempControl.properties`
+
+Used to set the temperature control variables for each raft.
+
+* `FocalPlane_ucd_RaftTempControlStatus.properties`
+
+Used to toggle temperature control status.
+
+* `FocalPlane_ucd_timers.properties`
+
+Used to specify the read time for monitoring tasks.
+
+* `FocalPlane_ucd_Visualization.properties`
+
+Used to set possible web visualization.
+
 ## Troubleshooting
 
 The following documents some common errors that may be encountered when attempting to operate the system using CCS.

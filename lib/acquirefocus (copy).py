@@ -34,7 +34,6 @@ class TestCoordinator(object):
         self.extra_delay = options.getFloat('extradelay', 0)
         self.description = options.get('description', None)
         self.delete = options.getInt('delete', 1)
-        self.initial_delay = options.getFloat('initialdelay', 0)
 
         logger.info("{0} Test Description: {1}".format(self.test_type, self.description))
 
@@ -100,10 +99,6 @@ class TestCoordinator(object):
 
         image_type = image_type if image_type else self.image_type
 
-        if TEST_SEQ_NUM == 0:
-            logger.info("Initial delay %g" % self.initial_delay)
-            time.sleep(self.initial_delay)
-
         ## Wait for optional extra delay before image
         if self.extra_delay > 0:
             logger.info("Extra delay %g" % self.extra_delay)
@@ -124,10 +119,10 @@ class TestCoordinator(object):
                     os.remove(filepath)
                     logger.debug("{0} removed.".format(filepath))
                     logger.info("Flush bias removed: {0}".format(filepath))
-#                else:
-#                    JFitsUtils.reorder_hdus(filepath)
-#                    logger.debug("{0} amplifiers reordered.".format(filepath))
-#                    logger.info("Image Type: {0}, File Path: {1}".format(image_type, filepath))
+                else:
+                    JFitsUtils.reorder_hdus(filepath)
+                    logger.debug("{0} amplifiers reordered.".format(filepath))
+                    logger.info("Image Type: {0}, File Path: {1}".format(image_type, filepath))
 
             ## Remove unused images
             elif filepath.endswith('S00.fits') or filepath.endswith('S02.fits'):
@@ -157,7 +152,7 @@ class BiasPlusImagesTestCoordinator(TestCoordinator):
     def __init__(self, options, test_type, image_type):
         super(BiasPlusImagesTestCoordinator, self).__init__(options, test_type, image_type)
         self.bcount = int(options.get('bcount', '1'))
-        self.intensity = 0.0
+        self.intensity = 0.3
         self.current = 0.0
 
     def take_bias_plus_image(self, exposure, expose_command, image_type=None):
@@ -279,7 +274,7 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
         self.mask = options.get('mask')
         self.exposures = options.getList('expose')
         self.points = options.getList('point')
-        ucd_bench.turnLightOn()
+#        ucd_bench.turnLightOn()
         self.get_current_position()
 
         logger.info("Mask: {0}, Image Count: {1}, Bias Count: {2}".format(self.mask, self.imcount, self.bcount))

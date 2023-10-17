@@ -88,7 +88,7 @@ def set_backbias_on():
     if ccdState == 'OFF':
         raise RuntimeError("CCD is not powered on!")
 
-    print("Setting back bias switch on.")
+    print "Setting back bias switch on."
     fp.sendSynchCommand("R22/Reb0 setBackBias True")
     return True
 
@@ -111,7 +111,7 @@ while back_bias_voltage>=48:
     out=current_bss+" "+datetime.datetime.now().strftime("%Y%m%d-%H:%M:%S")+"\n"
     file.write(out)       
     file.close()       
-    take_biases("/home/ccd/ucd-scripts/eotest-configs/bias_stability.cfg","--run")
+    take_biases("/home/ccd/ucd-scripts/eotest-configs/crosstalk_v_bss.cfg","--run")
     set_backbias_off()
     supplies.bss_off()
     back_bias_voltage-=voltagestep
@@ -126,7 +126,7 @@ while back_bias_voltage>5:
     out=current_bss+" "+datetime.datetime.now().strftime("%Y%m%d-%H:%M:%S")+"\n"
     file.write(out)       
     file.close()       
-    take_biases("/home/ccd/ucd-scripts/eotest-configs/bias_stability.cfg","--run")
+    take_biases("/home/ccd/ucd-scripts/eotest-configs/crosstalk_v_bss.cfg","--run")
     set_backbias_off()
     supplies.bss_off()
     back_bias_voltage-=voltagestep

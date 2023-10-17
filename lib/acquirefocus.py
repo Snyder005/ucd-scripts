@@ -119,10 +119,10 @@ class TestCoordinator(object):
                     os.remove(filepath)
                     logger.debug("{0} removed.".format(filepath))
                     logger.info("Flush bias removed: {0}".format(filepath))
-                else:
-                    JFitsUtils.reorder_hdus(filepath)
-                    logger.debug("{0} amplifiers reordered.".format(filepath))
-                    logger.info("Image Type: {0}, File Path: {1}".format(image_type, filepath))
+#                else:
+#                    JFitsUtils.reorder_hdus(filepath)
+#                    logger.debug("{0} amplifiers reordered.".format(filepath))
+#                    logger.info("Image Type: {0}, File Path: {1}".format(image_type, filepath))
 
             ## Remove unused images
             elif filepath.endswith('S00.fits') or filepath.endswith('S02.fits'):
@@ -152,7 +152,7 @@ class BiasPlusImagesTestCoordinator(TestCoordinator):
     def __init__(self, options, test_type, image_type):
         super(BiasPlusImagesTestCoordinator, self).__init__(options, test_type, image_type)
         self.bcount = int(options.get('bcount', '1'))
-        self.intensity = 10.0
+        self.intensity = 30.0
         self.current = 0.0
 
     def take_bias_plus_image(self, exposure, expose_command, image_type=None):
@@ -205,7 +205,7 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
             if self.intensity != intensity:
                 ucd_bench.setLightIntensity(intensity)
                 self.intensity = intensity
-                current = ucd_bench.readPhotodiodeCurrent()
+                self.current = ucd_bench.readPhotodiodeCurrent()
 
             logger.info("Flats: {0}, Exposure Time: {1}".format(count, exposure))
             logger.debug("Photodiode: {0}".format(self.current))
