@@ -6,12 +6,14 @@
 bias
 
 [DESCRIPTION]
-Example bias acquisition.
+Takes 7 biases when called
 
 # Bias
 #
 [BIAS]
 ANNOTATION=Just R21/Reb0
 LOCATIONS=R21/Reb0
-DESCRIPTION=20 bias images.
-COUNT=50
+DESCRIPTION=1 bias images.
+COUNT=10
+DELETE=0
+CLEARS=0

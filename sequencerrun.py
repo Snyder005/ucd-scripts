@@ -1,0 +1,27 @@
+#Code to brighter fatter tests
+import numpy as np
+import time,subprocess,datetime,sys
+sys.path.append('/home/ccd/ucd-scripts/python-lib')
+import Email_Warning
+
+def eWarning(warning):
+    try:
+        subject = "Run Finished " + time.asctime()
+        w_file = open('/home/ccd/ucd-scripts/python-lib/send_warning', 'w')
+        w_file.write(subject + ":: ")
+        w_file.write(warning)
+        w_file.close()
+        Email_Warning.Send_Warning(subject, warning)
+    except:
+        pass
+
+print("running get outta there!")
+time.sleep(30)
+
+try:
+    subprocess.run('ccs-script /home/ccd/ucd-scripts/ucd-data.py /home/ccd/ucd-scripts/eotest-configs/darkruns.cfg',check=True, shell=True)
+except:
+    print("failure")
+subprocess.run('ccs-script /home/ccd/ucd-scripts/scripts/sphereOff.py',check=True, shell=True)
+
+eWarning("Run Finished")

@@ -124,7 +124,7 @@ class TestCoordinator(object):
                     os.remove(filepath)
                     logger.debug("{0} removed.".format(filepath))
                     logger.info("Flush bias removed: {0}".format(filepath))
-#                else:
+#                else if 'R22' in filepath:
 #                    JFitsUtils.reorder_hdus(filepath)
 #                    logger.debug("{0} amplifiers reordered.".format(filepath))
 #                    logger.info("Image Type: {0}, File Path: {1}".format(image_type, filepath))
@@ -279,7 +279,11 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
         self.mask = options.get('mask')
         self.exposures = options.getList('expose')
         self.points = options.getList('point')
-        ucd_bench.turnLightOn()
+        self.focus = options.getBool('focus', False)
+        if self.focus:
+            self.intensity = 30.0
+        else:
+            ucd_bench.turnLightOn()
         self.get_current_position()
 
         logger.info("Mask: {0}, Image Count: {1}, Bias Count: {2}".format(self.mask, self.imcount, self.bcount))
