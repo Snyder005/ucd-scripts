@@ -35,6 +35,7 @@ class TestCoordinator(object):
         self.description = options.get('description', None)
         self.delete = options.getInt('delete', 1)
         self.initial_delay = options.getFloat('initialdelay', 0)
+        self.toggle_lamp = options.getBool('togglelamp', True)
 
         logger.info("{0} Test Description: {1}".format(self.test_type, self.description))
 
@@ -144,7 +145,8 @@ class BiasTestCoordinator(TestCoordinator):
     def __init__(self, options):
         super(BiasTestCoordinator, self).__init__(options, 'BIAS', 'BIAS')
         self.count = options.getInt('count', 10)
-        ucd_bench.turnLightOff()
+        if self.toggle_lamp:
+            ucd_bench.turnLightOff()
         logger.info("Bias Images: {0}".format(self.count))
 
     def take_images(self):
@@ -171,7 +173,8 @@ class DarkTestCoordinator(BiasPlusImagesTestCoordinator):
     def __init__(self, options):
         super(DarkTestCoordinator, self).__init__(options, 'DARK', 'DARK')
         self.darks = options.getList('dark')
-        ucd_bench.turnLightOff()
+        if self.toggle_lamp:
+            ucd_bench.turnLightOff()
         logger.info("Biases per Dark: {0}".format(self.bcount))
 
     def take_images(self):
@@ -193,7 +196,8 @@ class FlatFieldTestCoordinator(BiasPlusImagesTestCoordinator):
         super(FlatFieldTestCoordinator, self).__init__(options, 'FLAT', 'FLAT')
         self.flats = options.getList('flat')
         self.wl_filter = options.get('wl')
-        ucd_bench.turnLightOn()
+        if self.toggle_lamp:
+            ucd_bench.turnLightOn()
 
         logger.info("Biases per Flat: {0}".format(self.bcount))
 
@@ -234,7 +238,8 @@ class PersistenceTestCoordinator(BiasPlusImagesTestCoordinator):
         self.bcount = options.getInt('bcount', 10)
         self.persistence = options.getList('persistence')
         self.mask = options.get('mask')
-        ucd_bench.turnLightOn()
+        if self.toggle_lamp:
+            ucd_bench.turnLightOn()
 
         logger.info("Biases per Persistence Image: {0}".format(self.bcount))
 
@@ -282,7 +287,8 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
         self.focus = options.getBool('focus', False)
         if self.focus:
             self.intensity = 30.0
-        else:
+            self.toggle_lamp = False
+        if self.toggle_lamp:
             ucd_bench.turnLightOn()
         self.get_current_position()
 
