@@ -155,6 +155,7 @@ class Sphere(object):
             Time in seconds to wait for light stabilization.
         """
         self.light_socket.send(bytes("PS2~1\r"))
+        dummy_val = self.light_socket.recv(100)
         time.sleep(delay_time)
 
     def turn_light_off(self, delay_time=10.0):
@@ -166,6 +167,7 @@ class Sphere(object):
             Time in seconds to wait for light stabilization.
         """
         self.light_socket.send(bytes("PS2~0\r"))
+        dummy_val = self.light_socket.recv(100)
         time.sleep(delay_time)
 
     def drive_aperture(self, move_value, num_waits=20):
@@ -233,32 +235,6 @@ class Sphere(object):
         time.sleep(0.5)
         self.light_intensity = light_intensity
         
-    def read_photodiode1(self):
-        """ Read the photodiode current.
-
-        Returns
-        -------
-        diode_current : `float`
-            Photodiode current in amps.
-        """
-        ## First clear
-        self.light_socket.send(b"D\r")
-        dummy_val = self.light_socket.recv(100)
-        #print(dummy_val)
-        time.sleep(0.2)
-
-        ## Second clear
-        #self.light_socket.send(b"D\r")
-        #dummy_val = self.light_socket.recv(100)
-        #time.sleep(0.2)
-
-        ## Get photodiode current
-        self.light_socket.send(b"D\r")
-        diode_current = float(self.light_socket.recv(100).rstrip('\r'))
-        time.sleep(0.1)
-        
-        return diode_current        
-
     def read_photodiode(self):
         """ Read the photodiode current.
 
@@ -269,17 +245,11 @@ class Sphere(object):
         """
 
         ## Get photodiode current
-        diode_current=0
-        numtries=0
-        while numtries<=5 and diode_current==0:
-            self.light_socket.send(b"D\r")
-            prefloat = (self.light_socket.recv(100).rstrip('\r'))
-            time.sleep(0.2)
-            if prefloat=="R0~PS2~1" or 'R0~PS2~0':
-                numtries+=1
-            else:
-                diode_current=float(prefloat)
+        self.light_socket.send(b"D\r")
+        prefloat = (self.light_socket.recv(100).rstrip('\r'))
+        time.sleep(0.2)
         diode_current=float(prefloat)
+
         return diode_current
     
     def calibrate_aperature(self,step=30):

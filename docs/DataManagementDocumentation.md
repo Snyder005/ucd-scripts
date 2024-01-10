@@ -10,7 +10,7 @@ Example:
 
     ccd@viscacha:~$  fpack -F -Y -v /mnt/10TBHDD/data/20230620/*.fits
 
-The above will compress all FITS files located in the subdirectory for 2023-06-20, where `-F` forces the input file to be ovrwritten by the compressed file with the same name, `-Y` suprsses the promprts to confirm the `-F` option, and `-v` enables verbose mode where each file is listed as it is processed.  This also demonstrates that the input files may contain the usual wild card characters (`*`, `?`, etc.) that will be expanded by the shell.
+The above will compress all FITS files located in the subdirectory for 2023-06-20, where `-F` forces the input file to be ovrwritten by the compressed file with the same name, `-Y` supresses the promprts to confirm the `-F` option, and `-v` enables verbose mode where each file is listed as it is processed.  This also demonstrates that the input files may contain the usual wild card characters (`*`, `?`, etc.) that will be expanded by the shell.
 
 ## Data Transfer
 
@@ -20,7 +20,7 @@ Example:
 
     ccd@viscacha:~$  rsync -av /mnt/10TBHDD/20230620 snyder18@sdfdtn001.slac.stanford.edu:/sdf/data/rubin/offline/ucd
 
-The above will copy the directory `/mnt/10TBHDD/20230620` and all its contents to the directory `/sdf/rubin/offline/ucd`. The user login must have write permissions to the USDF data locations.
+The above will copy the directory `/mnt/10TBHDD/20230620` and all its contents to the directory `/sdf/data/rubin/offline/ucd`. The user login must have write permissions to the USDF data locations.
 
 ## Butler Ingest
 
