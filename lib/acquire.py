@@ -1,10 +1,13 @@
 import os
 import time
 import fp
+import jarray
 from org.lsst.ccs.utilities.location import LocationSet
 import ucd_bench
 import ucd_stage
 import logging
+from java.time import Duration
+from java.lang import String
 import JFitsUtils
 
 logger = logging.getLogger(__name__)
@@ -343,6 +346,137 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
                          'PdCurrent' : self.current})
         return data
 
+class ScanTestCoordinator(TestCoordinator):
+    ''' A TestCoordinator for taking scan-mode images '''
+    def __init__(self, options):
+        super(ScanTestCoordinator, self).__init__(options, 'SCAN', 'SCAN')
+        self.transparent = options.getInt("n-transparent")
+        self.scanmode = options.getInt("n-scanmode")
+        self.undercols = options.getInt("undercols")
+        self.overcols = options.getInt("overcols")
+        self.precols = options.getInt("precols")
+        self.readcols = options.getInt("readcols")
+        self.postcols = options.getInt("postcols")
+        self.overcols = options.getInt("overcols")
+        self.readcols2 = options.getInt("readcols2")
+        self.prerows = options.getInt("prerows")
+        self.readrows = options.getInt("readrows")
+        self.postrows = options.getInt("postrows")
+        self.overrows = options.getInt("overrows")
+        self.exposures = options.getList('expose')
+
+        self.intensity = 0.0
+        self.current = 0.0
+
+    def take_images(self):
+
+        preCols = fp.fp.getSequencerParameter("PreCols")
+        readCols = fp.fp.getSequencerParameter("ReadCols")
+        readCols2 = fp.fp.getSequencerParameter("ReadCols2")
+        postCols = fp.fp.getSequencerParameter("PostCols")
+        overCols = fp.fp.getSequencerParameter("OverCols")
+        preRows = fp.fp.getSequencerParameter("PreRows")
+        readRows = fp.fp.getSequencerParameter("ReadRows")
+        postRows = fp.fp.getSequencerParameter("PostRows")
+        scanMode = fp.fp.isScanEnabled()
+        idleFlushTimeout = fp.fp.getConfigurationParameterValue("sequencerConfig","idleFlushTimeout")
+        print "Initial sequencer parameters"
+
+        print "preCols="  , preCols
+        print "readCols=" , readCols
+        print "readCols2=" , readCols2
+        print "postCols=" , postCols
+        print "overCols=" , overCols
+
+        print "preRows="  , preRows
+        print "readRows=" , readRows
+        print "postRows=" , postRows
+
+        print "scanMode=" , scanMode
+        print "idleFlushTimeout=" , idleFlushTimeout
+
+        # set up scan mode
+        fp.fp.sequencerConfig().submitChanges(
+            {
+            "underCols":self.undercols,
+            "preCols":  self.precols,
+            "readCols": self.readcols,
+            "readCols2": self.readcols2,
+            "postCols": self.postcols,
+            "overCols": self.overcols,
+            "preRows":  self.prerows,
+            "readRows": self.readrows,
+            "postRows": self.postrows,
+            "overRows": self.overrows,
+            "scanMode": True,
+            "idleFlushTimeout": -1
+            }
+        )
+        fp.fp.applySubmittedChanges()
+        if idleFlushTimeout != -1:
+            fp.clear()
+
+        ## take scan mode exposures
+        for item in self.exposures:
+            
+            exposure, intensity = item.split()
+            exposure = float(exposure)
+            intensity = float(intensity)
+
+            if exposure == 0.0:
+                exposure = 1.0
+                expose_command = lambda: time.sleep(exposure)
+            else:
+                if self.intensity != intensity:
+                    ucd_bench.setLightIntensity(intensity)
+                    self.intensity = intensity
+                    self.current = ucd_bench.readPhotodiodeCurrent()
+
+                expose_command = lambda: ucd_bench.openShutter(exposure)
+
+            for i in range(self.scanmode):
+               self.take_image(exposure, expose_command, image_type=None)
+
+        ## set up transparent mode
+        fp.fp.sequencerConfig().submitChanges(
+            {
+            "transparentMode": 1
+            }
+        )
+        timeout= Duration.ofSeconds(60*5)
+        fp.fp.applySubmittedChanges(timeout=timeout)
+
+        ## take transparent mode exposures
+        for item in self.exposures:
+            
+            exposure, intensity = item.split()
+            exposure = float(exposure)
+            intensity = float(intensity)
+
+            if exposure == 0.0:
+                expose_command = lambda: time.sleep(exposure)
+            else:
+                if self.intensity != intensity:
+                    ucd_bench.setLightIntensity(intensity)
+                    self.intensity = intensity
+                    self.current = ucd_bench.readPhotodiodeCurrent()
+
+                expose_command = lambda: ucd_bench.openShutter(exposure)
+
+            for i in range(self.transparent):
+               self.take_image(exposure, expose_command, image_type=None)
+
+        # Restore settings
+        fp.fp.dropAllChanges()
+
+        if idleFlushTimeout != -1:
+            fp.clear()
+
+    def create_fits_header_data(self, exposure, image_type):
+        data = super(TestCoordinator, self).create_fits_header_data(exposure, image_type)
+        data.update({'PdCurrent' : self.current})
+        return data
+
 def do_bias(options):
     """Initialize a BiasTestCoordinator and take images."""
     tc = BiasTestCoordinator(options)
@@ -367,4 +501,10 @@ def do_spot(options):
     """Initialize a SpotTestCoordinator and take images."""
     logger.info("spot called {0}".format(options))
     tc = SpotTestCoordinator(options)
-    tc.take_images()    
+    tc.take_images()
+
+def do_scan(options):
+    """Initialize a ScanTestCoordinator and take images."""
+    logger.info("scan called {0}".format(options))
+    tc = ScanTestCoordinator(options)
+    tc.take_images()

@@ -1,0 +1,10 @@
+Thu Feb 22 15:05:55 2024Took 20 Bias images with no Injection
+
+Thu Feb 22 15:09:05 2024Starting Injection Run
+Injecting into VID6
+Number of Voltages: 1
+Low Voltage: 0.1
+High Voltage: 0.1
+Number of Delays1
+Lowest Delay0.0007
+0.000702
