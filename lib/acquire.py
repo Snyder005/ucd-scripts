@@ -473,7 +473,7 @@ class ScanTestCoordinator(TestCoordinator):
             fp.clear()
 
     def create_fits_header_data(self, exposure, image_type):
-        data = super(TestCoordinator, self).create_fits_header_data(exposure, image_type)
+        data = super(ScanTestCoordinator, self).create_fits_header_data(exposure, image_type)
         data.update({'PdCurrent' : self.current})
         return data
 

@@ -2,21 +2,21 @@
 
 VID=6
 
-lowvoltage=0.72 	#lowest Vpp to use
-highvoltage=1.42	#highest Vpp to use
-numberofvoltages=51	#number of steps from low to high voltage
+lowvoltage=-0.02 	#lowest Vpp to use
+highvoltage=-1.3	#highest Vpp to use
+numberofvoltages=10	#number of steps from low to high voltage
 
-lowdelay=0.0007008	#the starting delay time from the p3 clock
-highdelay=0.0007019	#the ending delay time from the p3 clock
+lowdelay=0.0007	#the starting delay time from the p3 clock
+highdelay=0.0007035	#the ending delay time from the p3 clock
 delaystep=0.00000002	#the step between delay times
 
-sleeptime=20		#the time to sleep between changing settings.
+sleeptime=14		#the time to sleep between changing settings.
 
 cfgfile="biases.cfg"
 biascfg="priorbiases.cfg"
 
 notes=None
-imagesperrun=5
+imagesperrun=2
 biasesperrun=20
 
 ##### DO NOT EDIT BELOW #####
@@ -38,6 +38,12 @@ if lowdelay==highdelay:
 def take_data(cfgfile):
     subprocess.run('ccs-script /home/ccd/ucd-scripts/ucd-data.py '+cfgfile,check=True, shell=True)
     return
+    
+def set_alarm(state):
+    if state=="off" or state=="OFF" or state=="Off":
+        subprocess.run('python /home/ccd/security/disarm.py',check=True, shell=True)
+    elif state=="on" or state=="ON" or state=="On":
+        subprocess.run('python /home/ccd/security/arm.py',check=True, shell=True)
     
 def make_imagedir(imagedir):
     subprocess.run('mkdir '+imagedir,check=True, shell=True)
@@ -85,6 +91,7 @@ def writelogfile(filename,notes):
     file.close()
     
 def write_fits_headers(directory):
+    stime=time.time()
     print("writing .fits headers. DO NOT EXIT!")
     voltagelist=np.linspace(lowvoltage,highvoltage,numberofvoltages)
     files=np.array(glob.glob(directory+'/*.fits'))
@@ -104,10 +111,12 @@ def write_fits_headers(directory):
                 # Save the changes and close the file
                 hdul.close()
             start+=imagesperrun
+        print("Finished V="+'{0:.4f}'.format(voltage)+". "+str(int(time.time()-stime))+"s elapsed.")
     print(".FITS headers updated")
     return
             
 def full_injection_run():
+    #set_alarm("on")
     starttime=time.time()
     eWarning("Starting New Injection Run.")
     numberofruns=len(delaytimes)*numberofvoltages
@@ -124,7 +133,7 @@ def full_injection_run():
         eWarning("Error in injection run on iteration "+str(iteration)+"\n"+str(e))
     power_CCD("off")
     copy_file_to_imagedir(cfgfile)
-    copy_file_to_imagedir("/home/ccd/ucd-scripts/injectionruns/injectionrun.py")
+    copy_file_to_imagedir("/home/ccd/ucd-scripts/injectionruns/InjectionConfig.py")
     notestolog='''
 '''+time.asctime()+''' Starting Injection Run
 Injecting into VID'''+str(VID)+'''
@@ -145,11 +154,12 @@ Highest Delay: '''+str(highdelay)+"\n"
     write_fits_headers(imagedir)
     rename_directory(imagedir,imagedir+"-Injection")
     eWarning("Finished injection run")
+    set_alarm("off")
     return
     
 def bias_run():
     make_imagedir(imagedir)
-    #power_CCD("on")
+    power_CCD("on")
     notestolog=time.asctime()+" Took 20 Bias images with no Injection\n"
     writelogfile(imagedir+"/"+date+"-log.txt",notestolog)
     take_data(biascfg)
