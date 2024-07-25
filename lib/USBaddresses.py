@@ -1,5 +1,0 @@
-BK9130B1address = "ASRL15::INSTR"
-BK9130B2address = "ASRL13::INSTR"
-BK1697address = "ASRL14::INSTR"
-BK9184address = "ASRL12::INSTR"
-shutteraddress= "ASRL11::INSTR"

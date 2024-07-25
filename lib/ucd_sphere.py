@@ -1,18 +1,5 @@
-#!/usr/bin/env ccs-script
-#
-#LABSPHERE LIGHT CONFIG AND FUNCTION FILE
-#
-# This is the configuration and function definition file for Labsphere light source in the UC Davis Viscacha, Rubin Observatory Optical beam simulator test stand.
-#
-#This code was largely written by Craig Lage for the Storm data aquisition system. It was edited and repurposed for the Viscacha REB5 system
-# 2023 Daniel Polin
-#
-#Additional edits made by Adam Snyder to adapt for usage outside of a GUI environment.
-import math
 import time
-import sys
 import socket
-import logging
 
 class Sphere(object):
     """A client-side connection to a light, photodiode, and variable aperture.
@@ -288,7 +275,6 @@ class Sphere(object):
 	print("Done. Took: "+str(time.time()-stime)+"s for "+str(abs(12000/step))+" steps")
         return
 
-    #@staticmethod
     def calculate_aperture_position(self, light_intensity):
         """Calculate the required aperture position (in %) for given light 
         intensity (in %.)

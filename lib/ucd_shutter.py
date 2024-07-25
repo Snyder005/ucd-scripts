@@ -1,9 +1,3 @@
-#!/usr/bin/env ccs-script  
-#
-#SHUTTER CONFIG AND FUNCTIONS FILE
-#
-# This is the configuration file for PS-500 camera shutter in the UC Davis Tempest, Rubin Observatory Optical beam simulator test stand. It is designed to by imported by a Jython script.
-# 2023 Daniel Polin
 from xyz.froud.jvisa import JVisaResourceManager
 from java.lang import String
 import USBaddresses
@@ -20,6 +14,11 @@ class Shutter():
     instrument = None
     """A VISA instrument (`xyz.froud.jvisa.JVisaInstrument`).
     """
+
+    def __init__(self):
+        rm = JVisaResourceManager()
+        self.instrument = rm.openInstrument(USBaddresses.shutteraddress)
+        self.instrument.setWriteTerminator('\r\n')
 
     def __init__(self):
         rm = JVisaResourceManager()
@@ -56,17 +55,11 @@ class Shutter():
             Raised if an unknown response string is encountered.
         """
         response = self.instrument.queryString('$B').rstrip('\x00\r\n')
-        if response == '$B 9':
-            status = "Shutter Open"
-        elif response == '$B 10':
-            status = "Closed to the right"
-        elif response == '$B 5':
-            status = "Closed to the left"
-        elif response == '$B 8':
-            status = "Opening to the left"
-        elif response == '$B 1':
-            status = "Opening to the right"
-        else:
-            raise RuntimeError("Unknown response string encountered {0}".format(response))
+        status_dict = {'$B 9' : "Shutter Open",
+                       '$B 10' : "Closed to the right",
+                       '$B 5' : "Closed to the left",
+                       '$B 8' : "Opening to the left",
+                       '$B 1' : "Opening to the right"}
+        status = status_dict[response]
 
-        return status
+        return  status
