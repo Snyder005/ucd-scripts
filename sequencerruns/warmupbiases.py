@@ -5,9 +5,9 @@ sys.path.append('/home/ccd/ucd-scripts/python-lib')
 import Email_Warning
 
 #sequencerlist=["v27_rt150","v27_rt300","v27_rt450","v27_rt600","v27_rt750","v27_rt750_iso1_140","v27_rt750_iso1_210","v27_rt750_iso1_70","v27_rt750_iso2_150","v27_rt750_iso2_300","v27_rt750_iso2_450","v27_InvertCnt1500","v27_InvertCnt6000","v26"]
-sequencerlist=["v26_overlap1330"]
-sequencercfgfile="UCD-A.cfg"
-sleeptime=30
+sequencerlist=["warmupbiases"] #this script does not change the sequencer
+sequencercfgfile="10biases.cfg"
+sleeptime=300
 
 date=time.strftime("%Y%m%d")
 imagedir='/mnt/10TBHDD/data/'+date
@@ -19,18 +19,14 @@ def set_alarm(state):
         subprocess.run('python /home/ccd/security/arm.py',check=True, shell=True)
 
 def take_data(cfgfile):
-    try:
-        subprocess.run('ccs-script /home/ccd/ucd-scripts/ucd-data.py '+cfgfile,check=True, shell=True)
-        power_light("off")
-    except:
-        power_light("off")
-    return
+    subprocess.run('ccs-script /home/ccd/ucd-scripts/ucd-data.py '+cfgfile,check=True, shell=True)
+        
     
 #def make_imagedir()
 
 def power_CCD(state):
     if state=="off" or state=="OFF" or state=="Off":
-        subprocess.run('ccs-script /home/ccd/ucd-scripts/scripts/setBackBias.py R21 --off',check=True, shell=True)
+        #subprocess.run('ccs-script /home/ccd/ucd-scripts/scripts/setBackBias.py R21 --off',check=True, shell=True)
         time.sleep(2)
         subprocess.run('ccs-script /home/ccd/ucd-scripts/scripts/powerCCD.py R21 --off',check=True, shell=True)
     elif state=="on" or state=="ON" or state=="On":
@@ -80,7 +76,7 @@ printConfigurationParameters Sequencer'''
     
 def eWarning(warning):
     try:
-        subject = "Run Update" + time.asctime()
+        subject = "Run Update " + time.asctime()
         w_file = open('/home/ccd/ucd-scripts/python-lib/send_warning', 'w')
         w_file.write(subject + ":: ")
         w_file.write(warning)
@@ -97,47 +93,56 @@ def get_sequencer_from_header(directory):
 def full_sequencer_run(sleeptime):
     print("Get outta there! Sleeping for "+str(sleeptime)+"s")
     time.sleep(sleeptime)
-    eWarning("Starting new sequencer run.")
+    eWarning("Starting new persistence run.")
     copy_file_to_imagedir(sequencercfgfile)
-    copy_file_to_imagedir("/home/ccd/ucd-scripts/sequencerruns/sequencerrun.py")
+    copy_file_to_imagedir("/home/ccd/ucd-scripts/sequencerruns/persistencerun.py")
     
     i=1
     length=str(len(sequencerlist))
-    set_alarm("on")
+    #set_alarm("on")
     for sequencerfilename in sequencerlist:
         nowdate=time.strftime("%Y%m%d")
         nowimagedir='/mnt/10TBHDD/data/'+nowdate
-        check="no"
-        attempt=0
-        while check!=sequencerfilename and attempt<5:
-            try:
-                change_sequencer(sequencerfilename)
-                time.sleep(10)
-                check=check_sequencer()
-            except:
-                attempt+=1
-                time.sleep(10)
-        if not check==sequencerfilename:
-            eWarning("The sequencer failed to update to "+str(sequencerfilename))
-            raise Exception("The sequencer failed to update to "+str(sequencerfilename))
+        #check="no"
+        #attempt=0
+        #while check!=sequencerfilename and attempt<5:
+        #    try:
+        #        change_sequencer(sequencerfilename)
+        #        time.sleep(10)
+        #        check=check_sequencer()
+        #    except:
+        #        attempt+=1
+        #        time.sleep(10)
+        #if not check==sequencerfilename:
+        #    eWarning("The sequencer failed to update to "+str(sequencerfilename))
+        #    raise Exception("The sequencer failed to update to "+str(sequencerfilename))
         try:
-            power_CCD("on")
-            take_data(sequencercfgfile)
-            sequencer="FP_E2V_2s_ir2_"+sequencerfilename+".seq"
-            seq=get_sequencer_from_header(nowimagedir)
-            if sequencer!=seq:
-                eWarning("The sequencer file is not correct in the header for "+str(sequencerfilename))
-                time.sleep(2)
-                raise Exception("Sequencer file not correct in the header!")
-            move_files_to_new_directory(nowimagedir,sequencerfilename)
+            print("Get outta there! Sleeping for "+str(sleeptime)+"s")
+            timetosleep=600
+            stime=time.time()
+            iteration=1
+            while True:
+                take_data(sequencercfgfile)
+                newtime=timetosleep*iteration-time.time()+stime
+                print("sleeping 10 min: "+str(newtime)+"s")
+                time.sleep(newtime)
+                iteration+=1
+            #sequencer="FP_E2V_2s_ir2_"+sequencerfilename+".seq"
+            #seq=get_sequencer_from_header(nowimagedir)
+            #if sequencer!=seq:
+            #    eWarning("The sequencer file is not correct in the header for "+str(sequencerfilename))
+            #    time.sleep(2)
+            #    raise Exception("Sequencer file not correct in the header!")
+            #move_files_to_new_directory(nowimagedir,sequencerfilename)
             power_CCD("off")
-            eWarning("Finished sequencer run for "+str(sequencerfilename)+" "+str(i)+"/"+length)
+            eWarning("Finished persistence run for "+str(sequencerfilename)+" "+str(i)+"/"+length)
             i+=1
             time.sleep(10)
         except:
-            eWarning("Error in sequencer run on "+str(sequencerfilename))
+            eWarning("Error in persistence run on "+str(sequencerfilename))
+            
             power_light("off")
-            print("Error in sequencer run on "+str(sequencerfilename))   
+            print("Error in persistence run on "+str(sequencerfilename))   
     set_alarm("off")
     
 full_sequencer_run(sleeptime)

@@ -5,8 +5,8 @@ sys.path.append('/home/ccd/ucd-scripts/python-lib')
 import Email_Warning
 
 #sequencerlist=["v27_rt150","v27_rt300","v27_rt450","v27_rt600","v27_rt750","v27_rt750_iso1_140","v27_rt750_iso1_210","v27_rt750_iso1_70","v27_rt750_iso2_150","v27_rt750_iso2_300","v27_rt750_iso2_450","v27_InvertCnt1500","v27_InvertCnt6000","v26"]
-sequencerlist=["v26_overlap1330"]
-sequencercfgfile="UCD-A.cfg"
+sequencerlist=["v26_nonoverlapping","v26"]
+sequencercfgfile="50_4xsaturation.cfg"
 sleeptime=30
 
 date=time.strftime("%Y%m%d")
@@ -36,6 +36,13 @@ def power_CCD(state):
     elif state=="on" or state=="ON" or state=="On":
         subprocess.run('ccs-script /home/ccd/ucd-scripts/scripts/powerCCD.py R21 --on',check=True, shell=True)
         time.sleep(2)
+        
+        #this section is just for the test1voltages witht the weird column effect that vanishes with many readouts.
+        subprocess.run('ccs-script /home/ccd/ucd-scripts/ucd-data.py bias200.cfg',check=True, shell=True)
+        time.sleep(2)
+        subprocess.run('mv '+imagedir+"/TS_C* "+imagedir+"/startupbiases",check=True, shell=True)
+        time.sleep(2)
+        
         subprocess.run('ccs-script /home/ccd/ucd-scripts/scripts/setBackBias.py R21 --on',check=True, shell=True)
     
 def power_light(state):
@@ -80,7 +87,7 @@ printConfigurationParameters Sequencer'''
     
 def eWarning(warning):
     try:
-        subject = "Run Update" + time.asctime()
+        subject = "Run Finished " + time.asctime()
         w_file = open('/home/ccd/ucd-scripts/python-lib/send_warning', 'w')
         w_file.write(subject + ":: ")
         w_file.write(warning)
@@ -99,7 +106,7 @@ def full_sequencer_run(sleeptime):
     time.sleep(sleeptime)
     eWarning("Starting new sequencer run.")
     copy_file_to_imagedir(sequencercfgfile)
-    copy_file_to_imagedir("/home/ccd/ucd-scripts/sequencerruns/sequencerrun.py")
+    copy_file_to_imagedir("/home/ccd/ucd-scripts/sequencerruns/sequencerruntest1volt.py")
     
     i=1
     length=str(len(sequencerlist))
