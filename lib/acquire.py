@@ -298,7 +298,7 @@ class SpotTestCoordinator(BiasPlusImagesTestCoordinator):
         logger.info("Mask: {0}, Image Count: {1}, Bias Count: {2}".format(self.mask, self.imcount, self.bcount))
 
     def get_current_position(self):
-        with open('/home/ccd/ucd-scripts/python-lib/StagePosition.py', 'r') as f:
+        with open('/home/ccd/ucd-scripts/python/StagePosition.py', 'r') as f:
             lines = f.readlines()
             x, y, z = lines[0].split("=")[1][1:-1].split(",")
         self.stagex = int(x)

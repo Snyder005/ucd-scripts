@@ -1,12 +1,12 @@
 import numpy as np
 import time,subprocess,datetime,sys,glob,random
 from astropy.io import fits
-sys.path.append('/home/ccd/ucd-scripts/python')
+sys.path.append('/home/ccd/ucd-scripts/python-lib')
 import Email_Warning
 
 #sequencerlist=["v27_rt150","v27_rt300","v27_rt450","v27_rt600","v27_rt750","v27_rt750_iso1_140","v27_rt750_iso1_210","v27_rt750_iso1_70","v27_rt750_iso2_150","v27_rt750_iso2_300","v27_rt750_iso2_450","v27_InvertCnt1500","v27_InvertCnt6000","v26"]
-sequencerlist=["v29_overlap133"]
-sequencercfgfile="50_4xsaturation.cfg"
+sequencerlist=["v26_overlap1330"]
+sequencercfgfile="UCD-A.cfg"
 sleeptime=30
 
 date=time.strftime("%Y%m%d")
@@ -59,7 +59,7 @@ def check_sequencer():
     output=str(output)
     output=output.split("\\n")
     output=output[-11]
-    output=output.split("l3cp_")
+    output=output.split("ir2_")
     #ITLseqreturn=output[2][:-6]
     e2vseqreturn=output[1].split(".seq")
     e2vseqreturn=e2vseqreturn[0]
@@ -68,7 +68,7 @@ def check_sequencer():
 def change_sequencer(sequencer):
     text='''set target ucd-fp
 
-sequencerConfig change sequencer [E2V:FP_E2V_2s_l3cp_'''+sequencer+'''.seq,ITL:FP_ITL_2s_l3cp_'''+sequencer+'''.seq]
+sequencerConfig change sequencer [E2V:FP_E2V_2s_ir2_'''+sequencer+'''.seq,ITL:FP_ITL_2s_ir2_'''+sequencer+'''.seq]
 
 printConfigurationParameters Sequencer'''
     file = open("ccssequencercommands.txt", 'w')
@@ -81,7 +81,7 @@ printConfigurationParameters Sequencer'''
 def eWarning(warning):
     try:
         subject = "Run Update" + time.asctime()
-        w_file = open('/home/ccd/ucd-scripts/python/send_warning', 'w')
+        w_file = open('/home/ccd/ucd-scripts/python-lib/send_warning', 'w')
         w_file.write(subject + ":: ")
         w_file.write(warning)
         w_file.close()
@@ -123,7 +123,7 @@ def full_sequencer_run(sleeptime):
         try:
             power_CCD("on")
             take_data(sequencercfgfile)
-            sequencer="FP_E2V_2s_l3cp_"+sequencerfilename+".seq"
+            sequencer="FP_E2V_2s_ir2_"+sequencerfilename+".seq"
             seq=get_sequencer_from_header(nowimagedir)
             if sequencer!=seq:
                 eWarning("The sequencer file is not correct in the header for "+str(sequencerfilename))

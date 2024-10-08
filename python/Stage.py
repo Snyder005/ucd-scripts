@@ -147,7 +147,7 @@ class Stage(object):
                 read_pos[i] = signed_value
                 max_diff = abs(last_read_pos - read_pos[i])
         self.current_pos=[self.initial_pos[i]+read_pos[i] for i in range(3)]
-        file = open('/home/ccd/ucd-scripts/python-lib/StagePosition.py', 'w')
+        file = open('/home/ccd/ucd-scripts/python/StagePosition.py', 'w')
         file.write("last_pos="+str(self.current_pos))
         file.close()
         return self.current_pos

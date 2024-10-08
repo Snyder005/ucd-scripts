@@ -1,13 +1,13 @@
 import numpy as np
 import time,subprocess,datetime,sys,glob,random
 from astropy.io import fits
-sys.path.append('/home/ccd/ucd-scripts/python-lib')
+sys.path.append('/home/ccd/ucd-scripts/python')
 import Email_Warning
 
 #sequencerlist=["v27_rt150","v27_rt300","v27_rt450","v27_rt600","v27_rt750","v27_rt750_iso1_140","v27_rt750_iso1_210","v27_rt750_iso1_70","v27_rt750_iso2_150","v27_rt750_iso2_300","v27_rt750_iso2_450","v27_InvertCnt1500","v27_InvertCnt6000","v26"]
-sequencerlist=["v26_overlap1330"] #this script does not change the sequencer
+sequencerlist=["v29_overlap133"] #this script does not change the sequencer
 sequencercfgfile="50_4xsaturation.cfg"
-sleeptime=30
+sleeptime=5
 
 date=time.strftime("%Y%m%d")
 imagedir='/mnt/10TBHDD/data/'+date
@@ -81,7 +81,7 @@ printConfigurationParameters Sequencer'''
 def eWarning(warning):
     try:
         subject = "Run Update " + time.asctime()
-        w_file = open('/home/ccd/ucd-scripts/python-lib/send_warning', 'w')
+        w_file = open('/home/ccd/ucd-scripts/python/send_warning', 'w')
         w_file.write(subject + ":: ")
         w_file.write(warning)
         w_file.close()
