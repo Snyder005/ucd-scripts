@@ -63,7 +63,7 @@ def take_data(acq_cfg):
     acq_cfg: `str`
         Acquisition configuration file.
     """
-     subprocess.run(f'ccs-script /home/ccd/ucd-scripts/ucd-data.py {acq_cfg}', check=True, shell=True)
+    subprocess.run(f'ccs-script /home/ccd/ucd-scripts/ucd-data.py {acq_cfg}', check=True, shell=True)
 
 def power_CCD(state):
     """Set CCD power state.
@@ -157,18 +157,21 @@ def get_sequencer_from_header(directory):
 
 def full_sequencer_run(acq_cfg, seq_labels, dry_run=False):
 
+    ## Create acquisition directory if it does not exist
     acq_date = time.strftime("%Y%m%d")
     acq_dir = os.path.join(DATADIR, acq_date)
-    Path(acq_dir).mkdir(parents=True, exists_ok=True)
 
-    print("Get outta there! Sleeping for {0}".format(SLEEPTIME))
-    time.sleep(SLEEPTIME)
-    eWarning("Starting new sequencer run.")
+    Path(acq_dir).mkdir(parents=True, exist_ok=True)
     shutil.copy2(acq_cfg, acq_dir)
     shutil.copy2(os.path.realpath(__file__), acq_dir)
 
-    ## Iterate over the sequencer labels
-    set_alarm("on")
+    ## Prime lab for acquisition
+    print("Get outta there! Sleeping for {0}".format(SLEEPTIME))
+    time.sleep(SLEEPTIME)
+    eWarning("Starting new sequencer run.")
+    set_alarm("on") # Need a way to always turn this off
+
+    ## Begin sequencer acquisitions
     for i, seq_label in enumerate(seq_labels):
        
         e2v_seq = 'FP_E2V_{0}.seq'.format(seq_label)
@@ -201,7 +204,7 @@ def full_sequencer_run(acq_cfg, seq_labels, dry_run=False):
 
             ## Create a new subdirectory named after the sequencer label
             seq_label_dir = os.path.join(acq_dir, seq_label)
-            Path(seq_label_dir).mkdir(parents=True, exists_ok=True)
+            Path(seq_label_dir).mkdir(parents=True, exist_ok=True)
 
             ## Move image files to the new subdirectory
             for img_file in glob.glob(os.path.join(acq_dir, 'TS_C*')):

@@ -1,15 +1,4 @@
 #nominal voltages
-#OD=23.4
-#RD=11.6
-#OG=-3.4
-#PclkH=3.3
-#PclkL=-5.9
-#SclkH=3.9
-#SclkL=-5.4
-#RGH=6.1
-#RGL=-4.0
-
-#test voltage
 PclkH=3.3
 PclkL=-6.0
 SclkH=3.9

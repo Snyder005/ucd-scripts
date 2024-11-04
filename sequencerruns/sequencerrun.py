@@ -5,12 +5,16 @@ sys.path.append('/home/ccd/ucd-scripts/python')
 import Email_Warning
 
 #sequencerlist=["v27_rt150","v27_rt300","v27_rt450","v27_rt600","v27_rt750","v27_rt750_iso1_140","v27_rt750_iso1_210","v27_rt750_iso1_70","v27_rt750_iso2_150","v27_rt750_iso2_300","v27_rt750_iso2_450","v27_InvertCnt1500","v27_InvertCnt6000","v26"]
-sequencerlist=["v29_overlap133"]
+#sequencerlist=["v29_overlap532"]
+sequencerlist=["v29_overlap2260","v29_overlap1720"] 
+#sequencerlist=["v29_overlap1064","v29_overlap1590","v29_overlap1720","v29_overlap1860","v29_overlap1990","29_overlap2120","29_overlap2260","29_overlap2390","29_overlap2520""v29_overlap1460","v29_overlap798"]
+
 sequencercfgfile="50_4xsaturation.cfg"
 sleeptime=30
 
 date=time.strftime("%Y%m%d")
 imagedir='/mnt/10TBHDD/data/'+date
+
 
 def set_alarm(state):
     if state=="off" or state=="OFF" or state=="Off":
@@ -54,21 +58,21 @@ def move_files_to_new_directory(directory,sequencerfilename):
     subprocess.run('mkdir '+imagedir+"/"+sequencerfilename,check=True, shell=True)
     subprocess.run('mv '+directory+"/TS_C* "+imagedir+"/"+sequencerfilename,check=True, shell=True)
     
-def check_sequencer():
+def check_sequencer(location):
     output=subprocess.check_output(["/home/ccd/ccs/bin/ccs-shell <ccssequencercheck.txt"],shell=True)
     output=str(output)
     output=output.split("\\n")
     output=output[-11]
-    output=output.split("l3cp_")
+    output=output.split(location+"_")
     #ITLseqreturn=output[2][:-6]
     e2vseqreturn=output[1].split(".seq")
     e2vseqreturn=e2vseqreturn[0]
     return e2vseqreturn#,ITLseqreturn
     
-def change_sequencer(sequencer):
+def change_sequencer(sequencer,location):
     text='''set target ucd-fp
 
-sequencerConfig change sequencer [E2V:FP_E2V_2s_l3cp_'''+sequencer+'''.seq,ITL:FP_ITL_2s_l3cp_'''+sequencer+'''.seq]
+sequencerConfig change sequencer [E2V:FP_E2V_2s_'''+location+'''_'''+sequencer+'''.seq,ITL:FP_ITL_2s_'''+location+'''_'''+sequencer+'''.seq]
 
 printConfigurationParameters Sequencer'''
     file = open("ccssequencercommands.txt", 'w')
@@ -98,6 +102,10 @@ def full_sequencer_run(sleeptime):
     print("Get outta there! Sleeping for "+str(sleeptime)+"s")
     time.sleep(sleeptime)
     eWarning("Starting new sequencer run.")
+    try:
+        subprocess.run('mkdir '+imagedir,check=True, shell=True)
+    except:
+        print(date+" directory already exists")
     copy_file_to_imagedir(sequencercfgfile)
     copy_file_to_imagedir("/home/ccd/ucd-scripts/sequencerruns/sequencerrun.py")
     
@@ -106,16 +114,24 @@ def full_sequencer_run(sleeptime):
     set_alarm("on")
     for sequencerfilename in sequencerlist:
         nowdate=time.strftime("%Y%m%d")
+        sequencerstart=sequencerfilename[:3]
+        if sequencerstart=="v29":
+            location="l3cp"
+        elif sequencerstart=="v26" or sequencerstart=="v27":
+            location="ir2"
+        else:
+            eWarning("Sequencer not an accepted version (ie. v26,v29)")
+            raise Exception("Sequencer not an accepted version (ie. v26,v29)")
         nowimagedir='/mnt/10TBHDD/data/'+nowdate
         check="no"
         attempt=0
         while check!=sequencerfilename and attempt<5:
             try:
-                change_sequencer(sequencerfilename)
+                change_sequencer(sequencerfilename,location)
                 time.sleep(10)
-                check=check_sequencer()
-            except:
+                check=check_sequencer(location)
                 attempt+=1
+            except:
                 time.sleep(10)
         if not check==sequencerfilename:
             eWarning("The sequencer failed to update to "+str(sequencerfilename))
@@ -123,7 +139,7 @@ def full_sequencer_run(sleeptime):
         try:
             power_CCD("on")
             take_data(sequencercfgfile)
-            sequencer="FP_E2V_2s_l3cp_"+sequencerfilename+".seq"
+            sequencer="FP_E2V_2s_"+location+"_"+sequencerfilename+".seq"
             seq=get_sequencer_from_header(nowimagedir)
             if sequencer!=seq:
                 eWarning("The sequencer file is not correct in the header for "+str(sequencerfilename))
@@ -143,8 +159,4 @@ def full_sequencer_run(sleeptime):
 if __name__ == '__main__':
     
     full_sequencer_run(sleeptime)
-#print(get_sequencer_from_header())
-#print(sequencerfilename)
-#fitsfiles=np.array(glob.glob('/mnt/10TBHDD/data/20231207/FP_E2V_2s_ir2_v27_rt750/*.fits'))
-#headerseq=fits.getheader(fitsfiles[0])["SEQFILE"]
-#print(headerseq)
+

@@ -5,7 +5,7 @@ sys.path.append('/home/ccd/ucd-scripts/python-lib')
 import Email_Warning
 
 #sequencerlist=["v27_rt150","v27_rt300","v27_rt450","v27_rt600","v27_rt750","v27_rt750_iso1_140","v27_rt750_iso1_210","v27_rt750_iso1_70","v27_rt750_iso2_150","v27_rt750_iso2_300","v27_rt750_iso2_450","v27_InvertCnt1500","v27_InvertCnt6000","v26"]
-sequencerlist=["v26_nonoverlapping","v26"]
+sequencerlist=["v26"]
 sequencercfgfile="50_4xsaturation.cfg"
 sleeptime=30
 
