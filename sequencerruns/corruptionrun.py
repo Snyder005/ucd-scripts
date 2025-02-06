@@ -4,12 +4,8 @@ from astropy.io import fits
 sys.path.append('/home/ccd/ucd-scripts/python')
 import Email_Warning
 
-#sequencerlist=["v29_overlap532","v29_overlap226","v29_overlap452","v29_overlap1190","v29_overlap660","v29_overlap2260","v29_overlap1720","v29_overlap930","v26_overlap1330","v26_nonoverlapping","v26"] 
-
-sequencerlist=["v29_overlap532","v29_overlap226","v29_overlap452","v29_overlap1190","v29_overlap660","v29_overlap2260","v29_overlap1720","v29_overlap930","v26_overlap1330","v26_nonoverlapping","v26"] 
-
-sequencercfgfile="overlap_scanmode.cfg"
-sleeptime=30
+sequencercfgfile="bias2000.cfg"
+sleeptime=0
 
 date=time.strftime("%Y%m%d")
 imagedir='/mnt/10TBHDD/data/'+date
@@ -97,65 +93,33 @@ def get_sequencer_from_header(directory):
     headerseq=fits.getheader(fitsfiles[0])["SEQFILE"]
     return headerseq
 
-def full_sequencer_run(sleeptime):
+def many_image_run(sleeptime):
     print("Get outta there! Sleeping for "+str(sleeptime)+"s")
     time.sleep(sleeptime)
-    eWarning("Starting new sequencer run.")
+    eWarning("Starting new corruption data run.")
+    nowdate=time.strftime("%Y%m%d")
     try:
         subprocess.run('mkdir '+imagedir,check=True, shell=True)
     except:
         print(date+" directory already exists")
     copy_file_to_imagedir(sequencercfgfile)
-    copy_file_to_imagedir("/home/ccd/ucd-scripts/sequencerruns/sequencerrun.py")
+    copy_file_to_imagedir("/home/ccd/ucd-scripts/sequencerruns/corruptionrun.py")
     
-    i=1
-    length=str(len(sequencerlist))
-    set_alarm("on")
-    for sequencerfilename in sequencerlist:
-        nowdate=time.strftime("%Y%m%d")
-        sequencerstart=sequencerfilename[:3]
-        if sequencerstart=="v29" or sequencerstart=="v30":
-            location="l3cp"
-        elif sequencerstart=="v26" or sequencerstart=="v27":
-            location="ir2"
-        else:
-            eWarning("Sequencer not an accepted version (ie. v26,v29)")
-            raise Exception("Sequencer not an accepted version (ie. v26,v29)")
-        nowimagedir='/mnt/10TBHDD/data/'+nowdate
-        check="no"
-        attempt=0
-        while check!=sequencerfilename and attempt<5:
-            try:
-                change_sequencer(sequencerfilename,location)
-                time.sleep(10)
-                check=check_sequencer(location)
-                attempt+=1
-            except:
-                time.sleep(10)
-        if not check==sequencerfilename:
-            eWarning("The sequencer failed to update to "+str(sequencerfilename))
-            raise Exception("The sequencer failed to update to "+str(sequencerfilename))
-        try:
-            power_CCD("on")
-            take_data(sequencercfgfile)
-            sequencer="FP_E2V_2s_"+location+"_"+sequencerfilename+".seq"
-            seq=get_sequencer_from_header(nowimagedir)
-            if sequencer!=seq:
-                eWarning("The sequencer file is not correct in the header for "+str(sequencerfilename))
-                time.sleep(2)
-                raise Exception("Sequencer file not correct in the header!")
-            move_files_to_new_directory(nowimagedir,sequencerfilename)
-            power_CCD("off")
-            eWarning("Finished sequencer run for "+str(sequencerfilename)+" "+str(i)+"/"+length)
-            i+=1
-            time.sleep(10)
-        except:
-            eWarning("Error in sequencer run on "+str(sequencerfilename))
-            power_light("off")
-            print("Error in sequencer run on "+str(sequencerfilename))   
-    set_alarm("off")
+    #set_alarm("on")
+    nowimagedir='/mnt/10TBHDD/data/'+nowdate
+       
+    try:
+        #power_CCD("on")
+        take_data(sequencercfgfile)
+        #power_CCD("off")
+        eWarning("Finished corruption data run for "+str(sequencercfgfile))
+        time.sleep(10)
+    except:
+        eWarning("Error in corruption run on "+str(sequencerfilename))
+        print("Error in corruption run on "+str(sequencerfilename))   
+    #set_alarm("off")
 
 if __name__ == '__main__':
     
-    full_sequencer_run(sleeptime)
+    many_image_run(sleeptime)
 

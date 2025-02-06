@@ -11,7 +11,7 @@ from email.mime.multipart import MIMEMultipart
 lsst_addr="ucdavislsst@gmail.com"
 
 def Send_Warning(message_subject, message_text):
-    to_list=[lsst_addr,'polin@ucdavis.edu','aksnyder@ucdavis.edu'] #,
+    to_list=[lsst_addr,'polin@ucdavis.edu','aksnyder@ucdavis.edu','nsbach@ucdavis.edu'] #,
     outside_list = []
     # First send waring for all ucdavis addrs to default server at solid.physics.ucdavis.edu
     for to_addr in to_list:

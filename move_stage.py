@@ -9,11 +9,11 @@ pos=stage.read_encoders()
 print(pos)
 
 x=-(10500/2-300)/2
-y=-10500*3/4
-#z=100#-100
+y=-(10500*3/4)
+z=100#-15000#-100
 
-pos=stage.move_stage(x=x)
-pos=stage.move_stage(y=y)
+#pos=stage.move_stage(x=x)
+#pos=stage.move_stage(y=y)
 #pos=stage.move_stage(z=z)
 
 #pos=stage.go_to(z=z,focus=False)
