@@ -39,7 +39,7 @@ VN15=		15	# CLK Low
 VP_HTR=	12	# Heater
 VP40=		38	# OD
 IP40Max=	0.095	# OD max allowed current
-VN70=		50	# Back Bias
+VN70=		50	# Back Bias (nominal is 50V)
 VN70max=	60	# Back Bias maximum voltage
 IN70max=	0.001	# Maximum Back Bias supply current
 ###############################################################################

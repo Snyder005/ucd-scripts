@@ -13,7 +13,7 @@ import Email_Warning
 
 DATADIR = '/mnt/10TBHDD/data/'
 
-def full_crosstalk_run(acq_cfg, dx=-10240, sleep_time=30.0):
+def full_crosstalk_run(acq_cfg, dx=-10240, dy=-10200, sleep_time=30.0, raftname='R21'):
 
     ## Create acquisition directory if it does not exist
     acq_date = time.strftime("%Y%m%d")
@@ -37,10 +37,9 @@ def full_crosstalk_run(acq_cfg, dx=-10240, sleep_time=30.0):
 
     segments = ['Seg10_11', 'Seg00_01_12_13', 'Seg02_03_14_15', 'Seg04_05_16_17', 'Seg06_07']
 
-    ## Need to find place for try loop.
     did_date_change = False
     try:
-        pyacquire.power_ccd('on', 'R21')
+        pyacquire.power_ccd('on', raftname)
         for i, segment in enumerate(segments):
 
             current_date = time.strftime("%Y%m%d")
@@ -48,7 +47,10 @@ def full_crosstalk_run(acq_cfg, dx=-10240, sleep_time=30.0):
             
             # Increment stage
             if i > 0:
-                pos = stage.move_stage(x=dx)
+                if raftname == 'R21':
+                    pos = stage.move_stage(x=dx)
+                elif raftname == 'R22':
+                    pos = stage.move_stage(y=dy)
             print(f"x = {pos[0]}, y = {pos[1]}, z = {pos[2]}")
 
             # Run acquisition
@@ -65,26 +67,31 @@ def full_crosstalk_run(acq_cfg, dx=-10240, sleep_time=30.0):
                     shutil.move(img_file, os.path.join(segment_dir, os.path.basename(img_file)))
 
             pyacquire.email_warning(f"Finished segment run for {segment} {i+1}/{len(segments)}")
+
     except Exception as e:
         pyacquire.email_warning(f"Error in segment run {segment}")
-        print("Something bad happened.")
         print(e)
     finally:
-        pyacquire.power_ccd('off', 'R21')
+        pyacquire.power_ccd('off', raftname)
         pyacquire.power_light('off')
         pyacquire.set_alarm('off')
        
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('acq_cfg', type=str)
-    parser.add_argument('--dx', type=int, default=-10240)
-    parser.add_argument('--sleep', type=float, default=30.0)
+    parser = argparse.ArgumentParser(description='Automated crosstalk data run.',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('acq_cfg', type=str, help="Acquisition config file.")
+    parser.add_argument('--dx', type=int, default=-10240, help="Stage x increment.")
+    parser.add_argument('--dy', type=int, default=-10200, help="Stage y increment.")
+    parser.add_argument('-s', '--sleep', type=float, default=30.0, help="Initial sleep time.")
+    parser.add_argument('-r', '--raftname', type=str, default='R21', help="Raft name (R21 or R22).")
 
     args = parser.parse_args()
 
     acq_cfg = args.acq_cfg
+    raftname = args.raftname
     dx = args.dx
+    dy = args.dy
     sleep_time = args.sleep
 
-    full_crosstalk_run(acq_cfg, dx=dx, sleep_time=sleep_time)
+    full_crosstalk_run(acq_cfg, raftname=raftname, dx=dx, dy=dy, sleep_time=sleep_time)
