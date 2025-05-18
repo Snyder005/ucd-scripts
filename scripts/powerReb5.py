@@ -11,11 +11,11 @@ import PowerSupplyConfig
 
 def power_reb5_off(raftname):
 
-    fp = CCS.attachSubsystem("ucd-fp")
-    ccdState = fp.sendSynchCommand("{0}/Reb0 getCCDsPowerState".format(raftname))
+#    fp = CCS.attachSubsystem("ucd-fp")
+#    ccdState = fp.sendSynchCommand("{0}/Reb0 getCCDsPowerState".format(raftname))
 
-    if ccdState == 'ON':
-        raise RuntimeError("CCD is still powered on!")
+#    if ccdState == 'ON':
+#        raise RuntimeError("CCD is still powered on!")
 
     PowerSupplyConfig.power_reb5_off()
 

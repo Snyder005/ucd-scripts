@@ -44,8 +44,8 @@ def power_light(state):
     else:
         raise ValueError(f"{state} must be either 'on' or 'off'")
 
-def power_ccd(state, raftname): 
-    """Set CCD power state. 
+def set_bss(state, raftname):
+    """Set back bias state. 
  
     Parameters 
     ---------- 
@@ -57,20 +57,44 @@ def power_ccd(state, raftname):
     Raises 
     ------ 
     ValueError 
-        Raised if state is an invalid choice. 
+        Raised if state is an invalid choice.
     """
     if state.lower() == "off":
         subprocess.run(f"ccs-script /home/ccd/ucd-scripts/scripts/setBackBias.py {raftname} --off", 
                        check=True, shell=True)
-        time.sleep(2)
+    elif state.lower() == "on":
+        subprocess.run(f"ccs-script /home/ccd/ucd-scripts/scripts/setBackBias.py {raftname} --on",
+                       check=True, shell=True)
+    else:
+        raise ValueError(f"{state} must be either 'On' or 'Off'")
+
+def power_ccd(state, raftname, bss_on=True): 
+    """Set CCD power state. 
+ 
+    Parameters 
+    ---------- 
+    state : `str` 
+        CCD power state (must be either 'on' or 'off', case-insensitive).
+    raftname: `str`
+        Raft name (must be either 'R21' or 'R22').
+    bss_on : `bool`
+        Set back bias state to on (Default is True).
+ 
+    Raises 
+    ------ 
+    ValueError 
+        Raised if state is an invalid choice. 
+    """
+    if state.lower() == "off":
+        set_bss('off', raftname)
         subprocess.run(f"ccs-script /home/ccd/ucd-scripts/scripts/powerCCD.py {raftname} --off", 
                        check=True, shell=True)
     elif state.lower() == "on":
         subprocess.run(f"ccs-script /home/ccd/ucd-scripts/scripts/powerCCD.py {raftname} --on",
                        check=True, shell=True)
         time.sleep(2)
-        subprocess.run(f"ccs-script /home/ccd/ucd-scripts/scripts/setBackBias.py {raftname} --on",
-                       check=True, shell=True)
+        if bss_on:
+            set_bss('on', raftname)
     else:
         raise ValueError(f"{state} must be either 'On' or 'Off'")
 

@@ -1,0 +1,82 @@
+#!/usr/bin/env ccs-script
+
+#BACK BIAS CHECK FILE
+
+# 2025 Craig Lage
+
+from xyz.froud.jvisa import JVisaResourceManager
+import java.lang.Exception as JException
+from java.lang import String
+import sys
+from time import sleep
+import USBaddresses
+
+###############################################################################
+# Set the Baud rates. The jvisa default is 9600, but the BK Precision 9130Bs run at 4800
+Baud9184=	57600
+###############################################################################
+#Set termination characters where required
+BK9184termination='\r\n'
+
+###############################################################################
+#Set the ID names of the devices
+ID9184 = "B&K PRECISION,9184,373B15105,2.04,0"
+###############################################################################
+# Set the input voltages that go into the REB5 and OTM
+VN70=		3	# Back Bias (nominal is 50V)
+VN70max=	10	# Back Bias maximum voltage
+IN70max=	0.001	# Maximum Back Bias supply current
+###############################################################################
+# Set the delay time between activating different voltages
+voltagedelaytime = 20	# delay time between voltages in seconds
+
+###############################################################################
+#Set the maximum acceptable difference between a set voltage and a measured readout to pass a check
+maximum_voltage_difference = 0.33
+
+###############################################################################
+class BackBias(object):
+    def __init__(self):
+        self.rm = JVisaResourceManager()
+        # Open the Power supplies for jvisa commands
+        self.BK9184 = self.rm.openInstrument(USBaddresses.BK9184address)
+        # Open the Back Bias Power Supply
+        self.BK9184.setBaudRate(Baud9184)
+        #Set the correct termination characters
+        #self.BK9184.setWriteTerminator(BK9184termination) #BK9184 has default write but \r\n read termination for some reason
+        #self.BK9184.setReadTerminationCharacter(BK9184termination) #Jython only allows a single temination character not \r\n so we have to just add that to the readout.
+        
+        # Set the power supplies to recieve remote commands
+        self.BK9184.write('SYStem:REMote \r\n')
+        return
+
+    def check_connections(self):
+        '''This function checks whether all four power supplies are responding to remote control.
+
+        return: 
+        Will return True if all are connected. If any power supply is not connected, will return False and print which devices are not responding.'''
+
+        FoundIDs=[]
+        try:
+            FoundIDs.append(self.BK9184.queryString('*IDN? \r\n'))
+        except (JException,Exception) as e:
+            FoundIDs.append("Not Found")
+            print(e)
+            
+        IDlist=[ID9184]
+        if FoundIDs == IDlist:
+            print("HV Supply Connected")
+            return True
+        else:
+            if IDlist[0] != FoundIDs[0]:
+                print("ERROR: BK9184 (BSS) Not connected, please fix the address in USBaddresses.py.")
+            return False
+
+    def read_BSS(self):
+        PWRBSS=self.BK9184.queryString('MEAS:VOLT? \r\n')
+        return PWRBSS
+
+    def read_ISS(self):
+        PWRISS=self.BK9184.queryString('MEAS:CURR? \r\n')
+        return PWRISS
+

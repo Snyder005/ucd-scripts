@@ -1,0 +1,27 @@
+#-----------------------------------------------------------
+# Vivado Lab Edition v2022.1 (64-bit)
+# SW Build 3526262 on Mon Apr 18 15:47:01 MDT 2022
+# 
+# Start of session at: Fri May 16 16:30:55 2025
+# Process ID: 10837
+# Current directory: /home/ccd/ucd-scripts/python
+# Command line: vivado_lab
+# Log file: /home/ccd/ucd-scripts/python/vivado_lab.log
+# Journal file: /home/ccd/ucd-scripts/python/vivado_lab.jou
+# Running On: viscacha, OS: Linux, CPU Frequency: 2100.000 MHz, CPU Physical cores: 12, Host memory: 67096 MB
+#-----------------------------------------------------------
+start_gui
+open_project /home/ccd/REB_prog_files/vivado/reb_od0/reb_od0.lpr
+connect_hw_server -url localhost:3121 -allow_non_jtag
+current_hw_target [get_hw_targets */xilinx_tcf/Digilent/210299B38697]
+set_property PARAM.FREQUENCY 15000000 [get_hw_targets */xilinx_tcf/Digilent/210299B38697]
+open_hw_target
+set_property PROGRAM.FILE {/home/ccd/Downloads/REB_v5_top_UCDavis_31395011.bit} [get_hw_devices xc7k160t_0]
+current_hw_device [get_hw_devices xc7k160t_0]
+refresh_hw_device -update_hw_probes false [lindex [get_hw_devices xc7k160t_0] 0]
+set_property PROBES.FILE {} [get_hw_devices xc7k160t_0]
+set_property FULL_PROBES.FILE {} [get_hw_devices xc7k160t_0]
+set_property PROGRAM.FILE {/home/ccd/Downloads/REB_v5_top_UCDavis_31395011.bit} [get_hw_devices xc7k160t_0]
+program_hw_devices [get_hw_devices xc7k160t_0]
+refresh_hw_device [lindex [get_hw_devices xc7k160t_0] 0]
+close_hw_target {localhost:3121/xilinx_tcf/Digilent/210299B38697}
