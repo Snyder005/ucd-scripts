@@ -9,7 +9,7 @@ from org.lsst.ccs.scripting import CCS
 
 import PowerSupplyConfig
 
-def set_backbias_on(raftname):
+def set_backbias_on(raftname, vbb=PowerSupplyConfig.VN70):
 
     fp = CCS.attachSubsystem("ucd-fp")
 
@@ -18,7 +18,7 @@ def set_backbias_on(raftname):
     if ccdState == 'OFF':
         raise RuntimeError("CCD is not powered on!")
 
-    PowerSupplyConfig.power_bss_on()
+    PowerSupplyConfig.power_bss_on(vbb)
     print "Setting back bias switch on."
     fp.sendSynchCommand("{0}/Reb0 setBackBias True".format(raftname))
 
@@ -42,6 +42,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(sys.argv[0])
     parser.add_argument('name', type=str)
+    parser.add_argument('-v', '--vbb', type=float, default=PowerSupplyConfig.VN70)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--on', action='store_true')
     group.add_argument('--off', action='store_false')
@@ -49,8 +50,9 @@ if __name__ == '__main__':
 
     state = args.on and args.off
     raftname = args.name
+    vbb = args.vbb
 
     if state:
-        print(set_backbias_on(raftname))
+        print(set_backbias_on(raftname, vbb=vbb))
     else:
         print(set_backbias_off(raftname))
