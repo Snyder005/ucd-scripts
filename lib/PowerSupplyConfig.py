@@ -74,15 +74,15 @@ def power_reb5_off():
     else:
         raise RuntimeError("REB5 Power shutdown failed due to connection issue.")
 
-def power_bss_on(v=VN70):
+def power_bss_on(vbb=VN70):
 
     supplies = Power_Supplies()
     check=supplies.check_connections() #check whether supplies are connected.
     if check==True:
-        if v == VN70:
+        if vbb == VN70:
             bss=supplies.bss_on()
         else:
-            bss=supplies.bss_on_arbitrary_voltage(v)
+            bss=supplies.bss_on_arbitrary_voltage(vbb)
         print(bss)
     else:
         raise RuntimeError("BSS power on failed due to connection issue.")

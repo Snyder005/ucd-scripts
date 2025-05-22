@@ -8,6 +8,7 @@ import argparse
 from org.lsst.ccs.scripting import CCS
 
 import PowerSupplyConfig
+import BackBiasCheck
 
 def set_backbias_on(raftname, vbb=PowerSupplyConfig.VN70):
 
@@ -18,7 +19,7 @@ def set_backbias_on(raftname, vbb=PowerSupplyConfig.VN70):
     if ccdState == 'OFF':
         raise RuntimeError("CCD is not powered on!")
 
-    PowerSupplyConfig.power_bss_on(vbb)
+    PowerSupplyConfig.power_bss_on(vbb=vbb)
     print "Setting back bias switch on."
     fp.sendSynchCommand("{0}/Reb0 setBackBias True".format(raftname))
 
