@@ -5,6 +5,8 @@
 
 #This script turns on/off the back bias voltage.
 import argparse
+from datetime import datetime
+
 from org.lsst.ccs.scripting import CCS
 
 import PowerSupplyConfig
@@ -22,6 +24,16 @@ def set_backbias_on(raftname, vbb=PowerSupplyConfig.VN70):
     PowerSupplyConfig.power_bss_on(vbb=vbb)
     print "Setting back bias switch on."
     fp.sendSynchCommand("{0}/Reb0 setBackBias True".format(raftname))
+
+    bbs = BackBiasCheck.BackBias()
+    bbs.check_connections()
+    voltage = bbs.read_bss()
+    current = bbs.read_iss()
+
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S.%f")
+    output = 'Vss = {0:.4f}, Iss = {1:.4f}, T = {2}'.format(voltage, current, current_time)
+    print output
 
     return True
 
