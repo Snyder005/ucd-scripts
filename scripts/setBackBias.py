@@ -14,6 +14,7 @@ import BackBiasCheck
 
 def set_backbias_on(raftname, vbb=PowerSupplyConfig.VN70):
 
+    print vbb
     fp = CCS.attachSubsystem("ucd-fp")
 
     ## Check CCD state
@@ -27,8 +28,8 @@ def set_backbias_on(raftname, vbb=PowerSupplyConfig.VN70):
 
     bbs = BackBiasCheck.BackBias()
     bbs.check_connections()
-    voltage = bbs.read_bss()
-    current = bbs.read_iss()
+    voltage = float(bbs.read_BSS())
+    current = float(bbs.read_ISS())
 
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S.%f")

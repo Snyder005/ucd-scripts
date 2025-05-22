@@ -17,7 +17,7 @@ from ccs import proxies
 from ccs import versions
 from ccs import configs
 import config
-import BackBiasChecker # in future maybe rename
+import BackBiasCheck # in future maybe rename
 
 # Temporary work around for problems with CCS responsiveness
 CCS.setDefaultTimeout(Duration.ofSeconds(30))
@@ -29,22 +29,20 @@ class WarningFilter(object):
 
 def bss_monitor(stop_event, outfile):
 
-    return
-
     bss = BackBiasCheck.BackBias()
     bss.check_connections()
 
     with open(outfile, 'a') as f:
         while not stop_event.is_set():
-            vss = BBCheck.read_BSS()
-            iss = BBCheck.read_ISS()
-            now = datetime.now()
+            vss = float(bss.read_BSS())
+            iss = float(bss.read_ISS())
+            now = datetime.datetime.now()
             current_time = now.strftime("%H:%M:%S.%f")
             output = "Vss = {0:.4f}, Iss = {1:.4f}, T = {2}\n".format(vss, iss, current_time)
             f.write(output)
-            time.sleep(0.5)
+            time.sleep(0.1)
 
-def main(cfgfile, run=None):
+def main(cfgfile, run=None, log_bss=False):
 
     ## Set up logging
     logger = logging.getLogger()
@@ -112,7 +110,7 @@ if __name__ == '__main__':
     parser = ArgumentParser(sys.argv[0], add_help=False)
     parser.add_argument('cfgfile', type=str)
     parser.add_argument('--run', type=str, default=None)
-    parser.add_argument('--log-bss', type=bool, default=False)
+    parser.add_argument('--log-bss', action='store_true')
 
     args = parser.parse_args()
     main(args.cfgfile, args.run, args.log_bss)
