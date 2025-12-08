@@ -1,5 +1,0 @@
-set target ucd-fp
-
-sequencerConfig change sequencer [E2V:FP_E2V_l3cp_v30_RGn10.seq,ITL:FP_ITL_l3cp_v30_RGn10.seq]
-
-printConfigurationParameters Sequencer

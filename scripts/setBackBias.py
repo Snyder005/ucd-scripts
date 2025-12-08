@@ -32,8 +32,7 @@ def set_backbias_on(raftname, vbb=PowerSupplyConfig.VN70):
     current = float(bbs.read_ISS())
 
     now = datetime.now()
-    current_time = now.strftime("%H:%M:%S.%f")
-    output = 'Vss = {0:.4f}, Iss = {1:.4f}, T = {2}'.format(voltage, current, current_time)
+    output = '{0}, Vss = {1:.4f}, Iss = {2:.4f}'.format(now, voltage, current)
     print output
 
     return True
@@ -56,7 +55,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(sys.argv[0])
     parser.add_argument('name', type=str)
-    parser.add_argument('-v', '--vbb', type=float, default=PowerSupplyConfig.VN70)
+    parser.add_argument('--vbb', type=float, default=PowerSupplyConfig.VN70)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--on', action='store_true')
     group.add_argument('--off', action='store_false')

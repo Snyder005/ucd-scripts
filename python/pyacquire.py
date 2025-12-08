@@ -106,7 +106,7 @@ def take_data(acq_cfg):
     acq_cfg: `str`
         Acquisition configuration file.
     """
-    subprocess.run(f'ccs-script /home/ccd/ucd-scripts/ucd-data.py {acq_cfg}', check=True, shell=True)
+    subprocess.run(f'ccs-script /home/ccd/ucd-scripts/scripts/ucd-data.py {acq_cfg}', check=True, shell=True)
 
 def change_sequencer(seq_label):
     """Change CCD sequencer file.

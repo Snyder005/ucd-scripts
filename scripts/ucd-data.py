@@ -37,8 +37,7 @@ def bss_monitor(stop_event, outfile):
             vss = float(bss.read_BSS())
             iss = float(bss.read_ISS())
             now = datetime.datetime.now()
-            current_time = now.strftime("%H:%M:%S.%f")
-            output = "Vss = {0:.4f}, Iss = {1:.4f}, T = {2}\n".format(vss, iss, current_time)
+            output = "{0}, {1:.4f}, {2:.4f}\n".format(now, vss, iss)
             f.write(output)
             time.sleep(0.1)
 
