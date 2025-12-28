@@ -8,11 +8,12 @@ time.sleep(5)
 pos=stage.read_encoders()
 print(pos)
 
-x=-(10500/2-300)/2
+#x=-(10500/2-300)/2
+x=2*10240
 y=-(10500*3/4)
 z=100#-15000#-100
 
-#pos=stage.move_stage(x=x)
+pos=stage.move_stage(x=x)
 #pos=stage.move_stage(y=y)
 #pos=stage.move_stage(z=z)
 

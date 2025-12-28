@@ -27,6 +27,7 @@ def full_sequencer_run(acq_cfg, seq_labels, sleep_time=30.0):
     time.sleep(sleep_time)
     pyacquire.email_warning("Starting new sequencer run.")
     pyacquire.set_alarm("on") # Need a way to always turn this off
+    pyacquire.power_light("on") # Need a way to always turn this off
 
     did_date_change = False
 
@@ -40,7 +41,7 @@ def full_sequencer_run(acq_cfg, seq_labels, sleep_time=30.0):
             pyacquire.change_sequencer(seq_label)
 
             ## Begin data acquisition
-            pyacquire.power_ccd('on', 'R21')
+            pyacquire.power_ccd('on', 'R21', bss_on=True)
             pyacquire.take_data(acq_cfg)
 
             ## Data management
@@ -58,6 +59,7 @@ def full_sequencer_run(acq_cfg, seq_labels, sleep_time=30.0):
         pyacquire.email_warning(f"Error in sequencer run for {seq_label}")
         print(e)
     finally:
+        pyacquire.power_light('off')
         pyacquire.set_alarm('off')
 
 if __name__ == '__main__':
