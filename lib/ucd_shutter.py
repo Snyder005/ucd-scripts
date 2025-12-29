@@ -26,11 +26,11 @@ class Shutter():
         self.instrument = rm.openInstrument(USBaddresses.shutteraddress)
         self.instrument.setWriteTerminator('\r\n')
 
-    def open(self):
+    def openShutter(self):
         """Opens the shutter."""
         self.instrument.queryString('$O')
 
-    def close(self):
+    def closeShutter(self):
         """Closes the shutter."""
         self.instrument.queryString('$C')
 
