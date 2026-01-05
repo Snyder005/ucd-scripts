@@ -40,24 +40,18 @@ class Sphere(object):
                                   'CC' : '0.2',
                                   'MR' : '3'}
         self.initialize_aperture_socket()
-        
-        # Clean up this code
-        with open('/home/ccd/ucd-scripts/lib/SphereLookUpTable.txt') as f:
-            self.intense=f.readlines()
-        self.steps=[]
-        for i in range(len(self.intense)):
-            self.intense[i]=float(self.intense[i])
-            self.steps.append(self.intense[0]*i)
-        self.steps=self.steps[:-1]
-        self.intense=self.intense[1:]
-        imax=max(self.intense)
-        self.intense=[100*i/imax for i in self.intense]
-        i=0
-        while self.intense[i]<100:
-            i+=1
-        self.intense=self.intense[i:]
-        self.steps=self.steps[i:]
-        self.intense_length=len(self.intense)
+
+        steps = []
+        intensities = []
+        with open('SphereLookUpTable.csv', 'r') as csvfile:
+
+            reader = csv.DictReader(csvfile)
+
+            for row in enumerate(reader):
+                steps.append(reader['Steps'])
+                intensities.append(reader['Intensity'])
+
+            self.intensity_length = len(self.intensities)
 
     def close_sockets(self):
         """Close the light and aperture socket."""
@@ -240,46 +234,7 @@ class Sphere(object):
 
         return diode_current
     
-    # Clean up code in this method
-    def calibrate_aperature(self,step=30):
-        """Creates the look up table for how far open the light aperature
-        should be to get a desired intensity.
-        
-        Parameters
-        ----------
-        step : `int`, optional
-            The number of motor steps to move by (30, by default).
-        """
-        stime = time.time()
-        self.turn_light_on()
-        step = -1*step
-        
-        ##Make the Look Up Table File
-        file = open('/home/ccd/ucd-scripts/lib/SphereLookUpTable.txt', 'w')
-        out = str(step)+"\n"
-        file.write(out)
-        file.close()
-        
-        n = 0
-        totalsteps = int(abs(12000/step)+2)
-        tenth = int(totalsteps/10)
-        for i in range(totalsteps):
-            self.drive_aperture(12000)
-            time.sleep(0.5)
-            self.drive_aperture(step*i)
-            current = self.read_photodiode()
-            file = open('/home/ccd/ucd-scripts/lib/SphereLookUpTable.txt', 'a')
-            file.write(str(current)+'\n')
-            file.close()
-            if i % tenth==0:
-                print(str(10*i/tenth)+" Percent done. Took "+str(time.time()-stime)+"s")
-            time.sleep(0.5)
-        #Turn off the Sphere at the end
-	sphere.turn_light_off()
-	print("Done. Took: "+str(time.time()-stime)+"s for "+str(abs(12000/step))+" steps")
-        return
-
-    #@staticmethod
+    # Clean up code
     def calculate_aperture_position(self, light_intensity):
         """Calculate the aperture position for a given light intensity.
 
@@ -299,7 +254,7 @@ class Sphere(object):
         """
         i = 0
         intense_value = 100
-        while (light_intensity < intense_value) and (i < self.intense_length - 1):
-            intense_value = self.intense[i]
+        while (light_intensity < intense_value) and (i < len(self.intensities) - 1):
+            intense_value = self.intensities[i]
             i += 1
         return self.steps[i]
