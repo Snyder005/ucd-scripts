@@ -235,7 +235,7 @@ class Sphere(object):
         return diode_current
     
     # Clean up code
-    def calculate_aperture_position(self, light_intensity):
+    def calculate_aperture_position(self, intensity):
         """Calculate the aperture position for a given light intensity.
 
         Uses a look up table (SphereLookUpTable.txt) to find the number of 
@@ -243,7 +243,7 @@ class Sphere(object):
 
         Parameters
         ----------
-        light_intensity : `float`
+        intensity : `float`
             Light intensity in percentage.
 
         Returns
@@ -252,9 +252,8 @@ class Sphere(object):
             The motor steps to be moved after a move of 12000 steps to open 
             the shutter completely.
         """
-        i = 0
-        intense_value = 100
-        while (light_intensity < intense_value) and (i < len(self.intensities) - 1):
-            intense_value = self.intensities[i]
-            i += 1
-        return self.steps[i]
+        closest = min(self.intensities, key=lambda x: abs(x-intensity))
+        index = self.intensities.index(closest)
+        position = self.steps[index]
+
+        return position

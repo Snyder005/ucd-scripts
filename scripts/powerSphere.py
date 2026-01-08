@@ -1,4 +1,4 @@
-#! /usr/bin/env ccs-script
+#!/usr/bin/env ccs-script
 import argparse
 import ucd_sphere
 

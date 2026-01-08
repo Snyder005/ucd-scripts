@@ -1,3 +1,4 @@
+#!/usr/bin/env ccs-script
 import csv
 import time
 import argparse
