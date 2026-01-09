@@ -8,9 +8,6 @@
 # 2023 Daniel Polin
 #
 #Additional edits made by Adam Snyder to adapt for usage outside of a GUI environment.
-#
-#To Do:
-# * clean up code related to look-up table
 import time
 import sys
 import socket
@@ -22,144 +19,90 @@ class Sphere(object):
 
     Connections to the light, photodiode, and variable aperture are made using
     the socket module, a low-level networking interface.
-    """
-    def __init__(self):
 
-        self.light_ip = '192.168.1.100'
-        self.light_tcp_portnum = 51344
-        self.light_buffer_size = 1024
-        self.initialize_light_socket()
+    Parameters
+    ----------
+    light_ip : `str`
+        Light IP address.
+    light_tcp : `int` 
+        Light TCP port number.
+    aperture_ip : `str`
+        Variable aperture IP address.
+    aperture_tcp : `int`
+        Variable aperture TCP port number.
+    look_up_table : `str`
+        Look up table CSV filename.
+    bufsize : `int`, optional
+        Maximum number of bytes to receive from connected socket (1024, by default).
+    """
+
+    def __init__(self, light_ip, light_tcp, aperture_ip, aperture_tcp, look_up_table):
+
+        self.light_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    
+        self.light_socket.connect((light_ip, light_tcp_portnum))
         self.light_intensity = 0.0
 
-        self.aperture_ip = '192.168.1.200'
-        self.aperture_tcp_portnum = 4000
-        self.aperture_buffer_size = 1024
-        self.aperture_settings = {'AC' : '15',
-                                  'DE' : '15',
-                                  'VE' : '1.1',
-                                  'CC' : '0.2',
-                                  'MR' : '3'}
-        self.initialize_aperture_socket()
+        self.aperture_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.aperture_socket.connect((aperture_ip, aperture_tcp_portnum))
 
-        steps = []
-        intensities = []
-        with open('SphereLookUpTable.csv', 'r') as csvfile:
+        settings = {'AC' : '15',
+                    'DE' : '15',
+                    'VE' : '1.1',
+                    'CC' : '0.2',
+                    'MR' : '3'}
+        for (key, value) in settings:
+            self.aperture_socket.send(bytes("{0}{1}\r".format(key, value)))
+            time.sleep(0.1)
+            self.aperture_socket.send(bytes("{0}\r".format(key)))
+            msg = self.aperture_socket.recv(1024).decode()
+            val = float(msg.split('=')[1])
+            tolerance = abs((val - float(value)) / float(value))
+            if tolerance >= 0.05:
+                self.light_socket.close()
+                self.aperture_socket.close()
+                raise RuntimeError("Failed to set parameter {0} to value {1}".format(key, value))
+
+        self.motor_steps = []
+        self.light_intensities = []
+        with open(look_up_table, 'r') as csvfile:
 
             reader = csv.DictReader(csvfile)
 
             for row in enumerate(reader):
-                steps.append(reader['Steps'])
-                intensities.append(reader['Intensity'])
+                self.motor_steps.append(reader['Steps'])
+                self.light_intensities.append(reader['Intensity'])
 
-            self.intensity_length = len(self.intensities)
-
-    def close_sockets(self):
-        """Close the light and aperture socket."""
-        self.light_socket.close()
-        self.aperture_socket.close()
-
-    def initialize_light_socket(self, num_tries=3):
-        """Initializes the light socket over Ethernet.
-
-        Parameters
-        ----------
-        num_tries : `int`, (optional)
-            Number of times to try to initialize the light socket.
-        """
-        for n in range(num_tries):
-            try:
-                self.light_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    
-                self.light_socket.connect((self.light_ip, self.light_tcp_portnum))
-                return
-            except Exception as e:
-                time.sleep(0.1)
-                continue
-        else:
-            raise e
-   
-    def initialize_aperture_socket(self, num_tries=3):
-        """Initialize the aperture socket over Ethernet.
-
-        Parameters
-        ----------
-        num_tries: `int`, (optional)
-            Number of times to try to initialize the aperture socket.
-
-        Raises
-        ------
-        RuntimeError
-            Raised if variable aperture parameter values cannot be set.
-        """
-        for n in range(num_tries):
-            try:
-                self.aperture_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.aperture_socket.connect((self.aperture_ip, self.aperture_tcp_portnum))
-                break
-            except Exception as e:
-                time.sleep(0.1)
-                continue
-        else:
-            raise e
-
-        for (key, value) in self.aperture_settings:
-            self.aperture_socket.send(bytes("{0}{1}\r".format(key, value)))
-            time.sleep(0.1)
-            self.aperture_socket.send(bytes("{0}\r".format(key)))
-            buff = (self.aperture_socket.recv(self.aperture_buffer_size))
-            buff = buff.decode()
-            buff = buff.split('=')[1]
-            val = float(buff)
-            tolerance = abs((val - float(value)) / float(value))
-            if tolerance >= 0.05:
-                self.aperture_socket.close()
-                raise RuntimeError("Failed to set parameter {0} to value {1}".format(name, value))
-
-    def verify_communications(self):
-        """Verify communication status.
-
-        Returns
-        -------
-        status : `bool`
-            `True` if socket communication is connected. `False` if not.
-        """
-        light_socket_status = (self.light_socket.getpeername()[0] == self.light_ip)
-        aperture_socket_status = (self.aperture_socket.getpeername()[0] == self.aperture_ip)
-        status = (light_socket_status and aperture_socket_status)
-
-        return status
-
-    def turn_light_on(self, delay_time=4.0):
+    def turn_light_on(self, wait=4.0):
         """Turn on the light.
 
         Parameters
         ----------
-        delay_time : `float`
+        wait : `float`
             Time in seconds to wait for light stabilization.
         """
         self.light_socket.send(bytes("PS2~1\r"))
-        dummy_val = self.light_socket.recv(100)
-        time.sleep(delay_time)
+        _ = self.light_socket.recv(100)
+        time.sleep(wait)
 
-    def turn_light_off(self, delay_time=10.0):
+    def turn_light_off(self, wait=10.0):
         """Turn off the light.
 
         Parameters
         ----------
-        delay_time : `float` (optional)
+        wait : `float` (optional)
             Time in seconds to wait for light stabilization.
         """
         self.light_socket.send(bytes("PS2~0\r"))
-        dummy_val = self.light_socket.recv(100)
-        time.sleep(delay_time)
+        _ = self.light_socket.recv(100)
+        time.sleep(wait)
 
-    def drive_aperture(self, move_value, num_waits=20):
+    def drive_aperture(self, motor_steps, num_waits=20):
         """Moves the variable aperture by the specified value.
 
         Parameters
         ----------
-        move_value : `int`
-            Variable aperture position specified as number of stepper motor 
-            pulses.
+        motor_steps : `int`
+            Number of steps for the motor to move.
         num_waits: `int` (optional)
             Number of timesteps (2 seconds) to wait for move.
 
@@ -168,31 +111,27 @@ class Sphere(object):
         RuntimeError
             Raised if the variable aperture failed to move.
         """
-        ## Check DL status
         self.aperture_socket.send(b"DL\r")
-        buff = self.aperture_socket.recv(self.aperture_buffer_size).decode()
-        dl_status = float(buff.split('=')[1])
+        msg = self.aperture_socket.recv(1024).decode()
+        dl_status = float(msg.split('=')[1])
         if dl_status != 1.0:
             raise RuntimeError("DL value not equal to 1. Failed aperture move.")
 
-        ## Send move command
-        self.aperture_socket.send(bytes("%s\r"%('DI'+str(move_value))))
+        self.aperture_socket.send(b"{0}\r".format('DI'+str(motor_steps)))
         self.aperture_socket.send(b"FL\r")
 
-        ## Wait for move completion
         for n in range(num_waits):
             time.sleep(2)
             self.aperture_socket.send(b"RS\r")
-            status = self.aperture_socket.recv(self.aperture_buffer_size)
-            if status == b'R\r':
+            msg = self.aperture_socket.recv(1024)
+            if msg == b'R\r':
                 break
         else:
             raise RuntimeError("Move not completed after {0} timesteps.".format(num_waits))    
 
-        ## Check RV status
         self.aperture_socket.send(b"RV\r")
-        buff = self.aperture_socket.recv(self.aperture_buffer_size).decode()
-        rv_status = int(buff.split('=')[1])
+        msg = self.aperture_socket.recv(1024).decode()
+        rv_status = int(msg.split('=')[1])
         if rv_status != 223:
             raise RuntimeError("RV value not equal to 223. Failed aperture move.")
 
@@ -205,15 +144,11 @@ class Sphere(object):
         light_intensity : `float`
             Light intensity in percentage (between 0 and 100.)
         """
-        sp = self.calculate_aperture_position(light_intensity)
-        aperture_position = int(sp)
-
-        ## Open aperture all the way
         self.drive_aperture(12000)
         time.sleep(0.5)
 
-        ## Open aperture to desired amount
-        self.drive_aperture(aperture_position)
+        motor_steps = self.get_motor_steps(light_intensity)
+        self.drive_aperture(motor_steps)
         time.sleep(0.5)
         self.light_intensity = light_intensity
         
@@ -222,38 +157,31 @@ class Sphere(object):
 
         Returns
         -------
-        diode_current : `float`
+        current : `float`
             Photodiode current in amps.
         """
-
-        ## Get photodiode current
         self.light_socket.send(b"D\r")
-        prefloat = (self.light_socket.recv(100).rstrip('\r'))
+        msg = (self.light_socket.recv(100).rstrip('\r'))
         time.sleep(0.2)
-        diode_current = float(prefloat)
+        current = float(msg)
 
-        return diode_current
+        return current
     
-    # Clean up code
-    def calculate_aperture_position(self, intensity):
-        """Calculate the aperture position for a given light intensity.
-
-        Uses a look up table (SphereLookUpTable.txt) to find the number of 
-        steps the motor must move to reach a desired light intensity.
+    def get_motor_steps(self, light_intensity):
+        """Get the motor steps to move to achieve a given light intensity.
 
         Parameters
         ----------
-        intensity : `float`
+        light_intensity : `float`
             Light intensity in percentage.
 
         Returns
         -------
-        position : `float`
-            The motor steps to be moved after a move of 12000 steps to open 
-            the shutter completely.
+        motor_steps : `float`
+            Number of steps for the motor to move.
         """
-        closest = min(self.intensities, key=lambda x: abs(x-intensity))
-        index = self.intensities.index(closest)
-        position = self.steps[index]
+        closest = min(self.light_intensities, key=lambda x: abs(x-light_intensity))
+        index = self.light_intensities.index(closest)
+        motor_steps = self.motor_steps[index]
 
-        return position
+        return motor_steps
