@@ -8,6 +8,8 @@
 # 2023 Daniel Polin
 #
 #Additional edits made by Adam Snyder to adapt for usage outside of a GUI environment.
+# * Write class method to initialize from config file.
+# * Simplify use of wait time in on/off methods.
 import time
 import sys
 import socket
@@ -32,8 +34,6 @@ class Sphere(object):
         Variable aperture TCP port number.
     look_up_table : `str`
         Look up table CSV filename.
-    bufsize : `int`, optional
-        Maximum number of bytes to receive from connected socket (1024, by default).
     """
 
     def __init__(self, light_ip, light_tcp, aperture_ip, aperture_tcp, look_up_table):
@@ -69,10 +69,10 @@ class Sphere(object):
             reader = csv.DictReader(csvfile)
 
             for row in enumerate(reader):
-                self.motor_steps.append(reader['Steps'])
-                self.light_intensities.append(reader['Intensity'])
+                self.motor_steps.append(int(row['Steps']))
+                self.light_intensities.append(float(row['Intensity']))
 
-    def turn_light_on(self, wait=4.0):
+    def turnLightOn(self, wait=4.0):
         """Turn on the light.
 
         Parameters
@@ -84,7 +84,7 @@ class Sphere(object):
         _ = self.light_socket.recv(100)
         time.sleep(wait)
 
-    def turn_light_off(self, wait=10.0):
+    def turnLightOff(self, wait=10.0):
         """Turn off the light.
 
         Parameters
@@ -96,7 +96,7 @@ class Sphere(object):
         _ = self.light_socket.recv(100)
         time.sleep(wait)
 
-    def drive_aperture(self, motor_steps, num_waits=20):
+    def driveAperture(self, motor_steps, num_waits=20):
         """Moves the variable aperture by the specified value.
 
         Parameters
@@ -135,7 +135,7 @@ class Sphere(object):
         if rv_status != 223:
             raise RuntimeError("RV value not equal to 223. Failed aperture move.")
 
-    def set_light_intensity(self, light_intensity):
+    def setLightIntensity(self, light_intensity):
         """ Opens the variable aperture a specified amount calculated from the
         given light intensty value.
 
@@ -152,7 +152,7 @@ class Sphere(object):
         time.sleep(0.5)
         self.light_intensity = light_intensity
         
-    def read_photodiode(self):
+    def readPhotodiode(self):
         """ Read the photodiode current.
 
         Returns
@@ -167,7 +167,7 @@ class Sphere(object):
 
         return current
     
-    def get_motor_steps(self, light_intensity):
+    def getMotorSteps(self, light_intensity):
         """Get the motor steps to move to achieve a given light intensity.
 
         Parameters
@@ -177,7 +177,7 @@ class Sphere(object):
 
         Returns
         -------
-        motor_steps : `float`
+        motor_steps : `int`
             Number of steps for the motor to move.
         """
         closest = min(self.light_intensities, key=lambda x: abs(x-light_intensity))
