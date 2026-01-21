@@ -7,7 +7,7 @@
 # To Do:
 # * Write class method to initialize from config file.
 from xyz.froud.jvisa import JVisaResourceManager
-from java.lang import String
+
 import USBaddresses
 
 class Shutter():
@@ -24,37 +24,37 @@ class Shutter():
         Name of resource to open.
     """
 
-    instrument = None
-    """A VISA instrument (`xyz.froud.jvisa.JVisaInstrument`).
+    shutter = None
+    """A shutter instrument (`xyz.froud.jvisa.JVisaInstrument`).
     """
 
     def __init__(self, resource_name=USBaddresses.shutteraddress):
         rm = JVisaResourceManager()
-        self.instrument = rm.openInstrument(resource_name)
-        self.instrument.setWriteTerminator('\r\n')
+        self.shutter = rm.openInstrument(resource_name)
+        self.shutter.setWriteTerminator('\r\n')
 
     @classmethod
     def from_json(cls, json_file):
         pass
 
-    def openShutter(self):
-        """Opens the shutter."""
-        self.instrument.queryString('$O')
+    def open(self):
+        """Open the shutter."""
+        self.shutter.queryString('$O')
 
-    def closeShutter(self):
-        """Closes the shutter."""
-        self.instrument.queryString('$C')
+    def close(self):
+        """Close the shutter."""
+        self.shutter.queryString('$C')
 
     def reset(self):
-        """Resets the shutter microcontroller."""
-        self.instrument.queryString('$R')
+        """Reset the shutter microcontroller."""
+        self.shutter.queryString('$R')
 
     def home(self):
-        """Puts the shutter blades in a home position."""
-        self.instrument.queryString('$H')
+        """Put the shutter blades in a home position."""
+        self.shutter.queryString('$H')
 
-    def status(self):
-        """Reads out the status of the shutter and decodes it into readable format.
+    def getStatus(self):
+        """Get the status of the shutter.
 
         Returns
         -------
@@ -78,6 +78,6 @@ class Shutter():
         elif response == '$B 1':
             status = "Opening to the right"
         else:
-            raise RuntimeError("Unknown response string encountered {0}".format(response))
+            raise RuntimeError("Unknown response string encountered: {0}".format(response))
 
         return status
