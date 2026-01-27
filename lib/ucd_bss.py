@@ -1,16 +1,7 @@
 #!/usr/bin/env ccs-script
-
-#BACK BIAS CHECK FILE
-
-# 2025 Craig Lage
-# To Do:
-# * Verify usage of write terminator '\r\n'
 from xyz.froud.jvisa import JVisaResourceManager
 
 import USBaddresses
-
-#Set termination characters where required
-BK9184termination = '\r\n'
 
 class BackBias(object):
     """A back bias voltage power supply.
@@ -93,7 +84,7 @@ class BackBias(object):
         voltage : `float`
             Power supply voltage.
         """
-        self.power_supply.write('VOLT {0}'.format(voltage)
+        self.power_supply.write('VOLT {0}'.format(voltage))
 
     def setVoltageLimit(self, voltage):
         """Set power supply voltage limit.

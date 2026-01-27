@@ -16,16 +16,19 @@ import USBaddresses
 # Set the Baud rates. The jvisa default is 9600, but the BK Precision 9130Bs run at 4800
 Baud9130B=	4800
 Baud1697=	9600
+Baud9184=	57600
 ###############################################################################
 #Set termination characters where required
 BK9130Btermination='\n'
 BK1697termination='\r'
+BK9184termination='\r\n'
 
 ###############################################################################
 #Set the ID names of the devices
 ID9130B1 = "B&K Precision, 9130B, 802361023737520053, 1.10-1.04"
 ID9130B2 = "B&K Precision, 9130B, 802361023737520051, 1.10-1.04"
 OK1697 = "OK"
+ID9184 = "B&K PRECISION,9184,373B15105,2.04,0"
 ###############################################################################
 # Set the input voltages that go into the REB5 and OTM
 V_OTM=		5	# OTM Digital Power
@@ -48,73 +51,52 @@ voltagedelaytime = 20	# delay time between voltages in seconds
 maximum_voltage_difference = 0.33
 
 ###############################################################################
+# Define the functions for the Power Supplies
+def power_reb5_on():
 
-class PowerSupplies(object):
-    
-    def __init__(self):
-        pass
+    supplies = Power_Supplies()
 
-    def getIDNs(self):
-        idns = (self.bk9130B_1.queryString('*IDN?'),
-                self.bk9130B_2.queryString('*IDN?'),
-                self.bk1697.queryString('SESS00'))
-        return idns
+    check=supplies.check_connections() #check whether supplies are connected.
+    if check==True:
+        reb=supplies.power_setup()
+        print(reb)
+    else:
+        raise RuntimeError("REB5 Power shutdown failed due to connection issue.")
 
-    def readAnalogVoltage(self):
-        response = self.bk9130b_1.queryString('MEAS:VOLT:ALL?')
-        voltage = float(response.split(',')[0])
-        return voltage
+def power_reb5_off():
 
-    def readCLKHighVoltage(self):
-        response = self.bk9130b_2.queryString('MEAS:VOLT:ALL?')
-        voltage = float(response.split(',')[1])
-        return voltage
+    supplies = Power_Supplies()
 
-    def readCLKLowVoltage(self):
-        response = self.bk9130b_2.queryString('MEAS:VOLT:ALL?')
-        voltage = float(response.split(',')[0])
-        return voltage
+    check=supplies.check_connections() #check whether supplies are connected.
+    if check==True:
+        reb=supplies.power_shutdown()
+        print(reb)
+    else:
+        raise RuntimeError("REB5 Power shutdown failed due to connection issue.")
 
-    def readDigitalVoltage(self):
-        response = self.bk9130b_1.queryString('MEAS:VOLT:ALL?')
-        voltage = float(response.split(',')[2])
-        return voltage
+def power_bss_on(vbb=VN70):
 
-    def readHeaterVoltage(self):
-        response = self.bk9130b_1.queryString('MEAS:VOLT:ALL?')
-        voltage = float(response.split(',')[1])
-        return voltage
+    supplies = Power_Supplies()
+    check=supplies.check_connections() #check whether supplies are connected.
+    if check==True:
+        if vbb == VN70:
+            bss=supplies.bss_on()
+        else:
+            bss=supplies.bss_on_arbitrary_voltage(vbb)
+        print(bss)
+    else:
+        raise RuntimeError("BSS power on failed due to connection issue.")
 
-    def readODVoltage(self):
-        response = self.bk1697.queryString('GETD00')
-        voltage = float(response)*10**-7
-        return voltage
+def power_bss_off():
 
-    def readOTMVoltage(self):
-        response = self.bk9130b_2.queryString('MEAS:VOLT:ALL?')
-        voltage = float(response.split(',')[2])
-        return voltage
+    supplies = Power_Supplies()
 
-
-        pass
-
-    def setCLKHighVoltage(self):
-        pass
-
-    def setCLKLowVoltage(self):
-        pass
-
-    def setDigitalVoltage(self):
-        pass
-
-    def setHeaterVoltage(self):
-        pass
-
-    def setODVoltage(self, voltage):
-        self.bk1697.queryString('VOLT00{}0'.format(voltage))
-
-    def setOTMVoltage(self):
-        pass
+    check=supplies.check_connections() #check whether supplies are connected.
+    if check==True:
+        bss=supplies.bss_off()
+        print(bss)
+    else:
+        raise RuntimeError("BSS supply shutdown failed due to connection issue.") 
 
 class Power_Supplies(object):
     def __init__(self):
