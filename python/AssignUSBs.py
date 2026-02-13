@@ -34,19 +34,25 @@ def main():
     shutteraddress = 'WARNING: Shutter not detected'
     stageaddress = 'Warning: Stage motor not detected'
 
+
+    instrument_data = {}
     # Assign the shutter
     try:
         sh = subprocess.check_output(['ls', '-l', '/dev/shutter']).decode()
-        shutteraddress='ASRL1'+sh[-2]+'::INSTR'
+        shutter_address='ASRL1'+sh[-2]+'::INSTR'
     except Exception as e:
         print("Failure to write shutter address. Exception of type %s and args = \n"%type(e).__name__, e.args)
+    else:
+        instrument_data['Shutter'] = {'resource_name' : shutter_address}
 
     # Assign the stage
     try:
         sh = subprocess.check_output(['ls', '-l', '/dev/stage']).decode()
-        stageaddress='ASRL1'+sh[-2]+'::INSTR'
+        stage_address='ASRL1'+sh[-2]+'::INSTR'
     except Exception as e:
         print("Failure to write stage motor address. Exception of type %s and args = \n"%type(e).__name__, e.args)
+    else:
+        instrument_data['Stage'] = {'resource_name' : stage_address}
 
     rm = pyvisa.ResourceManager()
     resources = rm.list_resources()
@@ -66,8 +72,10 @@ def main():
             else:
                 if ID == ID9130B1:
                     BK9130B1address = tty
+                    instrument_data['BK9130B1'] = {'resource_name' : tty}
                 elif ID == ID9130B2:
                     BK9130B2address = tty
+                    instrument_data['BK9130B2'] = {'resource_name' : tty}
                 continue
 
         # Look for the BK9184
@@ -81,6 +89,7 @@ def main():
             else:
                 if ID == ID9184:
                     BK9184address = tty
+                    instrument_data['BK9184'] = {'resource_name' : tty}
                 continue
 
         if BK1697address == 'WARNING: BK1697 not detected':
@@ -94,6 +103,7 @@ def main():
             else:
                 if okresponse == OK1697:
                     BK1697address = tty
+                    instrument_data['BK1697'] = {'resource_name' : tty}
             continue
 
     # Print results

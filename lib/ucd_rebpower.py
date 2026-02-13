@@ -13,19 +13,11 @@ from time import sleep
 import USBaddresses
 
 ###############################################################################
-# Set the Baud rates. The jvisa default is 9600, but the BK Precision 9130Bs run at 4800
-Baud9130B=	4800
-Baud1697=	9600
-###############################################################################
-#Set termination characters where required
-BK9130Btermination='\n'
-BK1697termination='\r'
-
-###############################################################################
 #Set the ID names of the devices
 ID9130B1 = "B&K Precision, 9130B, 802361023737520053, 1.10-1.04"
 ID9130B2 = "B&K Precision, 9130B, 802361023737520051, 1.10-1.04"
 OK1697 = "OK"
+
 ###############################################################################
 # Set the input voltages that go into the REB5 and OTM
 V_OTM=		5	# OTM Digital Power
@@ -36,85 +28,243 @@ VN15=		15	# CLK Low
 VP_HTR=	12	# Heater
 VP40=		38	# OD
 IP40Max=	0.095	# OD max allowed current
-VN70=		50	# Back Bias (nominal is 50V)
-VN70max=	60	# Back Bias maximum voltage
-IN70max=	0.001	# Maximum Back Bias supply current
+
 ###############################################################################
 # Set the delay time between activating different voltages
-voltagedelaytime = 20	# delay time between voltages in seconds
+SETTLE_TIME = 20	# delay time between voltages in seconds
 
 ###############################################################################
 #Set the maximum acceptable difference between a set voltage and a measured readout to pass a check
-maximum_voltage_difference = 0.33
+TOLERANCE = 0.33
 
 ###############################################################################
 
-class PowerSupplies(object):
-    
-    def __init__(self):
-        pass
+class BKPrecision1697(object):
 
-    def getIDNs(self):
-        idns = (self.bk9130B_1.queryString('*IDN?'),
-                self.bk9130B_2.queryString('*IDN?'),
-                self.bk1697.queryString('SESS00'))
-        return idns
+    def __init__(self, resource_name):
+        rm = JVisaResourceManager()
+        self.instrument = rm.openInstrument(resource_name)
+        self.instrument.setSerialBaudRate(9600)
+        self.instrument.setWriteTerminator('\r')
+        self.instrument.setReadTerminationCharacter('\r')
+        self.instrument.queryString('SESS00')
 
-    def readAnalogVoltage(self):
-        response = self.bk9130b_1.queryString('MEAS:VOLT:ALL?')
-        voltage = float(response.split(',')[0])
-        return voltage
+    @classmethod
+    def fromProperties(cls, properties_file, name='bk1697'):
+        properties = Properties()
+        with FileInputStream('instruments.properties') as f:
+            properties.load(f)
 
-    def readCLKHighVoltage(self):
-        response = self.bk9130b_2.queryString('MEAS:VOLT:ALL?')
-        voltage = float(response.split(',')[1])
-        return voltage
+        resource_name = properties['{0}/address'.format(name)]
+        return cls(resource_name)
 
-    def readCLKLowVoltage(self):
-        response = self.bk9130b_2.queryString('MEAS:VOLT:ALL?')
-        voltage = float(response.split(',')[0])
-        return voltage
+    def isConnected(self):
+        try:
+            self.instrument.queryString('SESS00')
+        except (JException, Exception):
+            return False
+        return True
 
-    def readDigitalVoltage(self):
-        response = self.bk9130b_1.queryString('MEAS:VOLT:ALL?')
-        voltage = float(response.split(',')[2])
-        return voltage
-
-    def readHeaterVoltage(self):
-        response = self.bk9130b_1.queryString('MEAS:VOLT:ALL?')
-        voltage = float(response.split(',')[1])
-        return voltage
-
-    def readODVoltage(self):
-        response = self.bk1697.queryString('GETD00')
+    def getVoltage(self):
+        response = self.instrument.queryString('GETD00')
         voltage = float(response)*10**-7
         return voltage
 
-    def readOTMVoltage(self):
-        response = self.bk9130b_2.queryString('MEAS:VOLT:ALL?')
-        voltage = float(response.split(',')[2])
+    def setOutputState(self, state):
+        if isinstance(state, bool):
+            self.instrument.queryString('SOUT00{0:d}'.format(state))
+        else:
+            raise ValueError('Not a boolean value: {0}'.format(state))
+
+    def setVoltage(self, voltage): # Make formatter for arbitrary voltages
+        self.instrument.queryString('VOLT00{0}0'.format(voltage))
+
+class BKPowerSupply(object):
+
+    def __init__(self, resource_name, baud_rate=None, write_terminator=None, read_terminator=None):
+        rm = JVisaResourceManager()
+        self.instrument = rm.openInstrument(resource_name)
+        if baud_rate is not None:
+            self.instrument = setSerialBaudRate(baud_rate)
+        if write_terminator is not None:
+            self.instrument = setWriteTerminator(write_terminator)
+        if read_terminator is not None:
+            self.instrument = setReadTerminationCharacter(read_terminator)
+        self.instrument.write('SYSTEM:REMOTE')
+
+    def isConnected(self):
+        try:
+            self.getIDN()
+        except (JException, Exception):
+            return False
+        return True
+
+    def getIDN(self):
+        idn = self.instrument.queryString('*IDN?')
+        return idn
+       
+class BKPrecision9184(BKPowerSupply):
+
+    def __init__(self, resource_name, voltage_limit=None, current_limit=None):
+        super().__init__(resource_name, baud_rate=57600, write_terminator='\r\n')
+        if voltage_limit is not None:
+            self.setVoltageLimit(voltage_limit)
+        if current_limit is not None:
+            self.setCurrentLimit(current_limit)
+
+    def getVoltage(self):
+        voltage = float(self.instrument.queryString('MEASURE:VOLTAGE?')
         return voltage
 
+    def getCurrent(self):
+        """Get power supply current.
 
-        pass
+        Returns
+        -------
+        current : `float`
+            Power supply current.
+        """
+        current = float(self.instrument.queryString('MEASURE:CURRENT?'))
+        return current
 
-    def setCLKHighVoltage(self):
-        pass
+    def getOutput(self):
+        state = self.instrument.write('OUTPUT?')
+        return state
 
-    def setCLKLowVoltage(self):
-        pass
+    def setVoltage(self, voltage):
+        """Set power supply voltage.
 
-    def setDigitalVoltage(self):
-        pass
+        Parameters
+        ----------
+        voltage : `float`
+            Power supply voltage.
+        """
+        self.instrument.write('SOURCE:VOLTAGE {0:.3f}'.format(voltage))
 
-    def setHeaterVoltage(self):
-        pass
+    def setVoltageLimit(self, voltage_limit):
+        """Set power supply voltage limit.
 
-    def setODVoltage(self, voltage):
-        self.bk1697.queryString('VOLT00{}0'.format(voltage))
+        Parameters
+        ----------
+        voltage_limit : `float`
+            Power supply voltage limit.
+        """
+        self.instrument.write('OUTPUT:LIMIT:VOLTAGE {0:.3f}'.format(voltage_limit)
 
-    def setOTMVoltage(self):
-        pass
+    def setCurrentLimit(self, current_limit):
+        """Set power supply current limit.
+    
+        Parameters
+        ----------
+        current_limit : `float`
+            Power supply current limit.
+        """
+        self.instrument.write('OUTPUT:LIMIT:CURRENT {0:.3f}'.format(current_limit))
+
+    def setOutput(self, state):
+        if isinstance(state, bool):
+            self.instrument.write('OUTPUT {0:d}'.format(state))
+        else:
+            raise ValueError('Not a boolean value: {0}'.format(state))
+
+class BKPrecision9130B(BKPowerSupply):
+
+    def __init__(self, resource_name):
+        super().__init__(resource_name, baud_rate=4800, write_terminator='\n', read_terminator='\n')
+
+    def getVoltages(self):
+        response = self.instrument.queryString('MEASURE:VOLTAGE:ALL?')
+        voltages = tuple(float(voltage) for voltage in response.split(','))
+        return voltages
+
+    def getOutput(self, state):
+        state = self.instrument.queryString('OUTPUT:STATE?')
+        return state
+
+    def setVoltages(self, voltages):
+        self.instrument.write('APPLY:VOLTAGE {0},{1},{2}'.format(*voltages))
+
+class REBPower(object):
+    
+    def __init__(self, resource_names):
+        self.bk9130b_1 = BKPrecision9130B(resource_names[0])
+        self.bk9130b_2 = BKPrecision9130B(resource_names[1])
+        self.bk1697 = BKPrecision1697(resource_names[2])
+
+    @classmethod
+    def fromProperties(cls, properties_file):
+        properties = Properties()
+        with FileInputStream('instruments.properties') as f:
+            properties.load(f)
+    
+        resource_names = (properties['bk9130b1/address'],
+                          properties['bk9130b2/address'],
+                          properties['bk1697/address'])
+        return cls(resource_names)
+
+    def checkConnections(self):
+        is_connected = (self.bk9130b_1.isConnected(),
+                        self.bk9130b_2.isConnected(),
+                        self.bk1697.isConnected())
+        return is_connected
+
+    def getOutputState(self):
+        pass # make sure this isn't a pointer!
+
+    def getVoltages(self):
+        pass # get output voltages
+
+    def verifyVoltages(self):
+        pass # check difference between set voltage and output voltage
+
+    def powerOn(self):
+    
+        # check if voltages are on
+
+        # if voltages in unknown state turn them off
+
+        # set bk9130 voltages to 0V and set to on
+        self.bk9130b_1.setVoltages((0, 0, 0))
+        self.bk9130b_2.setVoltages((0, 0, 0))
+
+        # set bk9130b to on, set 1697 to off
+        self.bk9130b_1.setOutputState(True)
+        self.bk9130b_2.setOutputState(True)
+        self.bk1697.setOutputState(False)
+
+        # set otm, digital, and heater voltages
+        self.bk9130b_1.setVoltages((0, VP_HTR, VP5))
+        self.bk9130b_2.setVoltages((0, 0, V_OTM))
+        time.sleep(SETTLE_TIME)
+
+        # set clock voltages
+        self.bk9130b_1.setVoltages((VP7, VP_HTR, VP5))
+        self.bk9130b_2.setVoltages((VP15, VN15, V_OTM))
+        self.bk1697.setVoltage(VP40)
+        time.sleep(SETTLE_TIME)
+
+        # set bk1697 to on
+        self.bk1697.setOutputState(True)
+
+    def powerOff(self):
+
+        # check if voltages are off; if not, proceed.
+    
+        # set bk1697 to off.
+        self.bk1697.setOutputState(False)
+
+        # set clock voltages and analog to 0V
+        self.bk9130b_1.setVoltages((0, voltages[1], voltages[2]))
+        self.bk9130b_2.setVoltages((0, 0, voltages[3]))
+        time.sleep(SETTLE_TIME)
+
+        # set otm, digital, and heater voltages to 9V
+        self.bk9130b_1.setVoltages((0, 0, 0))
+        self.bk9130b_2.setVoltages((0, 0, 0))
+
+        # bk9130b set to off
+        self.bk9130b_1.setOutputState(False)
+        self.bk9130b_2.setOutputState(False)
 
 class Power_Supplies(object):
     def __init__(self):
