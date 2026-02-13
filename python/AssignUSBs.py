@@ -114,5 +114,7 @@ def main():
     print('Shutter: '+shutteraddress)
     print('Stage Motor: '+stageaddress)
 
+    print(instrument_data)
+
 if __name__ == '__main__':
     main()
