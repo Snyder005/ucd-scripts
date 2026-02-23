@@ -8,9 +8,63 @@
 # * Write class method to initialize from config file.
 from xyz.froud.jvisa import JVisaResourceManager
 
-import USBaddresses
+class Device(object):
 
-class Shutter():
+    instrument = None
+    devcId    
+
+    baudRate = None
+    writeTerminator = None
+    readTerminator = None
+
+    def __init__(self, devcName, devcId):
+        self.devcName = devcName
+        self.devcId = devcId
+        self.initialize()
+
+    def initialize(self):
+        """Initialize the connection to the instrument."""
+        try:
+            rm = JVisaResourceManager()
+            self.instrument = rm.openInstrument(self.devcId)
+            if self.baudRate is not None:
+                self.instrument.setSerialBaudRate(self.baudRate)
+            if self.writeTerminator is not None:
+                self.instrument.setWriteTerminator(self.writeTerminator)
+            if self.readTerminator is not None:
+                self.instrument.setReadTerminationCharacter(self.readTerminator)
+            self.checkConnection()
+            self.initError = False
+        except JVisaException:
+            if not self.initError:
+                self.initError = True
+
+    def close(self):
+        """Closes the connection to the instrument."""
+        self.instrument.close()
+
+    def checkConnection(self):
+        """Checks the connection to the instrument."""
+        raise NotImplementedError
+
+    def isConnected(self):
+        """Check the connection to the instrument.
+
+        Returns
+        -------
+        connected : `bool`
+            `True` if the connection to the instrument is open. `False` if not.
+        """
+        try:
+            self.checkConnection()
+        except JVisaException:
+            connected = False
+        else:
+            connected = True
+
+        return connected
+
+class Shutter(Device):
     """A VISA optical shutter.
 
     Remote connection is performed using the VISA (Virtual Instrument Software
@@ -24,42 +78,41 @@ class Shutter():
         Name of resource to open.
     """
 
-    shutter = None
-    """A shutter instrument (`xyz.froud.jvisa.JVisaInstrument`).
-    """
+    def __init__(self, devcId):
 
-    def __init__(self, resource_name=USBaddresses.shutteraddress):
-        rm = JVisaResourceManager()
-        self.shutter = rm.openInstrument(resource_name)
-        self.shutter.setWriteTerminator('\r\n')
+        self.writeTerminator = '\r\n'
+        super().__init__('Sci-in Tech PS-500 Shutter', devcId)
 
     @classmethod
-    def from_json(cls, json_file):
+    def fromProperties(cls, properties):
         pass
 
-    def open(self):
+    def checkConnection(self):
+        self.readShutterState()
+
+    def openShutter(self):
         """Open the shutter."""
         self.shutter.queryString('$O')
 
-    def close(self):
+    def closeShutter(self):
         """Close the shutter."""
         self.shutter.queryString('$C')
 
-    def reset(self):
+    def resetShutter(self):
         """Reset the shutter microcontroller."""
         self.shutter.queryString('$R')
 
-    def home(self):
+    def homeShutter(self):
         """Put the shutter blades in a home position."""
         self.shutter.queryString('$H')
 
-    def getStatus(self):
-        """Get the status of the shutter.
+    def readShutterState(self):
+        """Get the state of the shutter.
 
         Returns
         -------
-        status : `str`
-            Status of the shutter in readable format.
+        state : `str`
+            State of the shutter in readable format.
 
         Raises
         ------
@@ -68,15 +121,15 @@ class Shutter():
         """
         response = self.instrument.queryString('$B').rstrip('\x00\r\n')
         if response == '$B 9':
-            status = "Shutter Open"
+            state = "Shutter Open"
         elif response == '$B 10':
-            status = "Closed to the right"
+            state = "Closed to the right"
         elif response == '$B 5':
-            status = "Closed to the left"
+            state = "Closed to the left"
         elif response == '$B 8':
-            status = "Opening to the left"
+            state = "Opening to the left"
         elif response == '$B 1':
-            status = "Opening to the right"
+            state = "Opening to the right"
         else:
             raise RuntimeError("Unknown response string encountered: {0}".format(response))
 
