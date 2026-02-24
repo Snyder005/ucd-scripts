@@ -1,8 +1,8 @@
+#!/usr/bin/env python
 #USB ASSIGNING SCRIPT
 
 # This script should be run after a system reset it assigns the correct USB adresses in /dev/ttyUSB? to the correct devices by querying them and returning the correct device.
 #Daniel Polin 2023
-
 import pyvisa 
 import subprocess
 
