@@ -1,67 +1,8 @@
 #!/usr/bin/env ccs-script
 from xyz.froud.jvisa import JVisaResourceManager, JVisaException
+# import Device
 
-class PowerDevice(object):
-
-    instrument = None
-    initError = None
-
-    baudRate = None
-    writeTerminator = None
-    readTerminator = None
-
-    def __init__(self, devcName, devcId):
-    
-        self.devcName = devcName
-        self.devcId = devcId
-        self.initialize()
-
-    def initialize(self):
-        """Initialize connection to the instrument."""
-        try:
-            rm = JVisaResourceManager()
-            self.instrument = rm.openInstrument(self.devcId)
-            if self.baudRate is not None:
-                self.instrument.setSerialBaudRate(self.baudRate)
-            if self.writeTerminator is not None:
-                self.instrument.setWriteTerminator(self.writeTerminator)
-            if self.readTerminator is not None:
-                self.instrument.setReadTerminationCharacter(self.readTerminator)
-            self.readIDN()
-            self.initError = False
-        except JVisaException:
-            if not self.initError:
-                self.initError = True
-
-    def close(self):
-        """Close connection to the instrument."""
-        self.instrument.close()
-
-    def powerOn(self): # Power on all channels
-        """Power on the instrument with operating parameters."""
-        self.writeAll() # Write voltage to set voltage
-        self.writeOutput(True) # Write channel output
-
-    def powerOff(self): # Power off all cha
-        """Power off the instrument."""
-        self.writeOutput(False) # Write channel output
-
-    def isConnected(self):
-        """Check connection to the instrument.
-
-        Returns
-        -------
-        connected : `bool`
-            `True` if the connection to the instrument is open. `False` if not.
-        """
-        try:
-            self.readIDN()
-        except JVisaException:
-            connected = False
-        else:
-            connected = True
-
-        return connected
+class PowerDevice(Device):
 
     def readIDN(self):
         """Read the identification string of the instrument.
@@ -73,6 +14,16 @@ class PowerDevice(object):
         """
         idn = self.instrument.queryString('*IDN?')
         return idn
+
+    def isConnected(self):
+        try:
+            self.readIDN()
+        except JVisaException:
+            connected = False
+        else:
+            conncted = True
+
+        return connected
 
     def writeOutput(self, state):
         """Write the output state of the instrument.
@@ -92,24 +43,27 @@ class PowerDevice(object):
         else:
             raise TypeError('Not a boolean value: {0}'.format(state))
 
-    def writeAll(self):
-        raise NotImplementedError
-
 class BKPrecision9184(PowerDevice):
 
-    opVoltage = None
-    opMaxVoltage = None
-    opMaxCurrent = None
-
-    def __init__(self, devcId, voltage, max_voltage, max_current):
+    def __init__(self, devcId, voltage, maxVoltage, maxCurrent):
         self.baudRate = 57600
         self.writeTerminator = '\r\n'
-
         self.setVoltage(voltage)
-        self.setMaxVoltage(max_voltage)
-        self.setMaxCurrent(max_current)
+        self.setMaxVoltage(maxVoltage)
+        self.setMaxCurrent(maxCurrent)
 
         super().__init__('B&K 9184 PS', devcId)
+        self.initialize()
+
+    def initialize(self)
+        self().initialize()
+        try:
+            self.getIDN()
+            self.setRemote()
+        except JVisaException as e:
+            self.close()
+        else:
+            raise e
 
     def setVoltage(self, voltage):
         """Set the operating voltage of the instrument.
@@ -119,7 +73,11 @@ class BKPrecision9184(PowerDevice):
         voltage : `float`
             Operating voltage of the instrument in units of volts.
         """
-        self.opVoltage = voltage
+        self._opVoltage = voltage
+
+    def getVoltage(self):
+        """Get the operating voltage of the instrument."""
+        return self._opVoltage
 
     def readVoltage(self):
         """Read the output voltage of the instrument.
@@ -134,7 +92,7 @@ class BKPrecision9184(PowerDevice):
 
     def writeVoltage(self):
         """Write the operating voltage to the instrument."""
-        self.instrument.write('VOLTAGE {0:.3f}'.format(self.opVoltage))
+        self.instrument.write('VOLTAGE {0:.3f}'.format(self._opVoltage))
 
     def readCurrent(self):
         """Read the output current of the instrument.
@@ -155,7 +113,11 @@ class BKPrecision9184(PowerDevice):
         maxVoltage : `float`
             Maximum operating voltage of the instrument.
         """
-        self.opMaxVoltage = maxVoltage
+        self._opMaxVoltage = maxVoltage
+
+    def getMaxVoltage(self):
+        """Get the maximum operating voltage of the instrument."""
+        return self._opMaxVoltage
 
     def readMaxVoltage(self):
         """Read the maximum operating voltage of the instrument.
@@ -170,7 +132,7 @@ class BKPrecision9184(PowerDevice):
 
     def writeMaxVoltage(self):
         """Write the maximum operating voltage to the instrument."""
-        self.instrument.write('OUTPUT:LIMIT:VOLTAGE {0:.3f}'.format(self.opMaxVoltage))
+        self.instrument.write('OUTPUT:LIMIT:VOLTAGE {0:.3f}'.format(self._opMaxVoltage))
 
     def setMaxCurrent(self, maxCurrent):
         """Set the maximum operating current of the instrument.
@@ -180,7 +142,11 @@ class BKPrecision9184(PowerDevice):
         maxCurrent : `float`
             Maximum operating current of the instrument.
         """
-        self.opMaxCurrent = current
+        self._opMaxCurrent = maxCurrent
+
+    def getMaxCurrent(self)
+        """Get the maximum operating current of the instrument."""
+        return self._opMaxCurrent
 
     def readMaxCurrent(self):
         """Read the maximum operating current of the instrument.
@@ -194,7 +160,7 @@ class BKPrecision9184(PowerDevice):
 
     def writeMaxCurrent(self):
         """Write the maximum operating current to the instrument."""
-        self.instrument.write('OUTPUT:LIMIT:CURRENT {0:.3f}'.format(self.opMaxCurrent))
+        self.instrument.write('OUTPUT:LIMIT:CURRENT {0:.3f}'.format(self._opMaxCurrent))
 
     def readOutput(self): # check return type (str or bool)
         """Read the output state of the instrument.
@@ -215,16 +181,23 @@ class BKPrecision9184(PowerDevice):
 
 class BK9130BDevice(PowerDevice):
     
-    opVoltages = None
-    
     def __init__(self, devcId, voltages):
         self.baudRate = 4800
         self.writeTerminator = '\n'
-        self.readTerminator = '\n'
-
         self.setVoltages(voltages)
 
         super().__init__('B&K 9130B PS', devcId)
+        self.initialize()
+
+    def initialize(self)
+        self().initialize()
+        try:
+            self.getIDN()
+            self.setRemote()
+        except JVisaException as e:
+            self.close()
+        else:
+            raise e
 
     def setVoltages(self, voltages):
         """Set the operating voltages of the instrument.
@@ -234,7 +207,11 @@ class BK9130BDevice(PowerDevice):
         voltages : `list` [`float`]
             Operating voltages of the instrument.
         """
-        self.opVoltages = voltages
+        self._opVoltages = voltages
+
+    def getVoltages(self):
+        """Get the operating voltages of the instrument."""
+        return self._opVoltages
 
     def readVoltages(self):
         """Read the output voltages of the instrument.
@@ -249,7 +226,7 @@ class BK9130BDevice(PowerDevice):
 
     def writeVoltages(self):
         """Write the operating voltages to the instrument."""
-        self.instrument.write('APPLY:VOLTAGE {0},{1},{2}'.format(*self.opVoltages))
+        self.instrument.write('APPLY:VOLTAGE {0},{1},{2}'.format(*self._opVoltages))
 
     def readOutput(self): # check return type (str or bool)
         """Read the output state of the instrument.
@@ -262,21 +239,23 @@ class BK9130BDevice(PowerDevice):
         state = self.instrument.queryString('OUTPUT:STATE?')
         return state
 
-    def writeAll(self):
-        """Write all operating parameters to the instrument."""
-        self.writeVoltages()
-
 class BK1697BDevice(PowerDevice):
-
-    opVoltage = None
 
     def __init__(self, devcId, voltage):
         self.writeTerminator = '\n'
-        self.readTerminator = '\n'
-
         self.setVoltage(voltage)
 
         super().__init__('B&K 1697B PS', devcId)
+        self.initialize()
+
+    def initialize(self)
+        self().initialize()
+        try:
+            self.getIDN()
+        except JVisaException as e:
+            self.close()
+        else:
+            raise e
 
     def setVoltage(self, voltage):
         """Set the operating voltage of the instrument.
@@ -287,6 +266,10 @@ class BK1697BDevice(PowerDevice):
             Operating voltage of the instrument.
         """
         self.opVoltage = voltage
+
+    def getVoltage(self):
+        """Get the operating voltage of the instrument."""
+        return self.opVoltage
 
     def readVoltage(self):
         """Read the output voltage of the instrument.
@@ -313,10 +296,6 @@ class BK1697BDevice(PowerDevice):
         """
         state = self.instrument.queryString('OUTPUT?')
         return state
-
-    def writeAll(self):
-        """Write all operating parameters to the instrument."""
-        self.writeVoltage()
       
 class UCDPower(object):
 

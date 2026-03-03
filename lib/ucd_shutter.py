@@ -1,4 +1,4 @@
-#!/usr/bin/env ccs-script  
+#!/usr/bin/env ccs-script
 #
 #SHUTTER CONFIG AND FUNCTIONS FILE
 #
@@ -10,8 +10,7 @@ from xyz.froud.jvisa import JVisaResourceManager
 
 class Device(object):
 
-    instrument = None
-    devcId    
+    instrument = None 
 
     baudRate = None
     writeTerminator = None
@@ -20,75 +19,38 @@ class Device(object):
     def __init__(self, devcName, devcId):
         self.devcName = devcName
         self.devcId = devcId
-        self.initialize()
 
     def initialize(self):
         """Initialize the connection to the instrument."""
-        try:
-            rm = JVisaResourceManager()
-            self.instrument = rm.openInstrument(self.devcId)
-            if self.baudRate is not None:
-                self.instrument.setSerialBaudRate(self.baudRate)
-            if self.writeTerminator is not None:
-                self.instrument.setWriteTerminator(self.writeTerminator)
-            if self.readTerminator is not None:
-                self.instrument.setReadTerminationCharacter(self.readTerminator)
-            self.checkConnection()
-            self.initError = False
-        except JVisaException:
-            if not self.initError:
-                self.initError = True
+        rm = JVisaResourceManager()
+        self.instrument = rm.openInstrument(self.devcId)
+        if self.baudRate is not None:
+            self.instrument.setSerialBaudRate(self.baudRate)
+        if self.writeTerminator is not None:
+            self.instrument.setWriteTerminator(self.writeTerminator)
+        if self.readTerminator is not None:
+            self.instrument.setReadTerminationCharacter(self.readTerminator)
 
     def close(self):
         """Closes the connection to the instrument."""
         self.instrument.close()
 
-    def checkConnection(self):
-        """Checks the connection to the instrument."""
-        raise NotImplementedError
-
-    def isConnected(self):
-        """Check the connection to the instrument.
-
-        Returns
-        -------
-        connected : `bool`
-            `True` if the connection to the instrument is open. `False` if not.
-        """
-        try:
-            self.checkConnection()
-        except JVisaException:
-            connected = False
-        else:
-            connected = True
-
-        return connected
-
 class Shutter(Device):
-    """A VISA optical shutter.
-
-    Remote connection is performed using the VISA (Virtual Instrument Software
-    Architecture) API for communicating with test & measurement instruments.
-    JVisa is the Java library for using VISA instruments in a Java or Jython
-    program.
-
-    Parameters
-    __________
-    resource_name : `str`
-        Name of resource to open.
-    """
 
     def __init__(self, devcId):
-
         self.writeTerminator = '\r\n'
+
         super().__init__('Sci-in Tech PS-500 Shutter', devcId)
+        self.initialize()
 
-    @classmethod
-    def fromProperties(cls, properties):
-        pass
-
-    def checkConnection(self):
-        self.readShutterState()
+    def initialize(self):
+        """Raises JVisaException"""
+        super().initialize()
+        try:
+            self.readShutterState()
+        except JVisaException as e:
+            self.close()
+            raise e
 
     def openShutter(self):
         """Open the shutter."""
@@ -116,7 +78,7 @@ class Shutter(Device):
 
         Raises
         ------
-        RuntimeError
+        JVisaException
             Raised if an unknown response string is encountered.
         """
         response = self.instrument.queryString('$B').rstrip('\x00\r\n')
@@ -131,6 +93,6 @@ class Shutter(Device):
         elif response == '$B 1':
             state = "Opening to the right"
         else:
-            raise RuntimeError("Unknown response string encountered: {0}".format(response))
+            raise JVisaException("Unknown response string encountered: {0}".format(response))
 
-        return status
+        return state
