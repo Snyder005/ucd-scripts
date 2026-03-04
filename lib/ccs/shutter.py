@@ -6,69 +6,41 @@
 # 2023 Daniel Polin
 # To Do:
 # * Write class method to initialize from config file.
-from xyz.froud.jvisa import JVisaResourceManager
+from xyz.froud.jvisa import JVisaResourceManager, JVisaException
+from ccs.device import SerialDevice
 
-class Device(object):
+class PS500(SerialDevice):
 
-    instrument = None 
-
-    baudRate = None
-    writeTerminator = None
-    readTerminator = None
-
-    def __init__(self, devcName, devcId):
-        self.devcName = devcName
-        self.devcId = devcId
-
-    def initialize(self):
-        """Initialize the connection to the instrument."""
-        rm = JVisaResourceManager()
-        self.instrument = rm.openInstrument(self.devcId)
-        if self.baudRate is not None:
-            self.instrument.setSerialBaudRate(self.baudRate)
-        if self.writeTerminator is not None:
-            self.instrument.setWriteTerminator(self.writeTerminator)
-        if self.readTerminator is not None:
-            self.instrument.setReadTerminationCharacter(self.readTerminator)
-
-    def close(self):
-        """Closes the connection to the instrument."""
-        self.instrument.close()
-
-class Shutter(Device):
-
-    def __init__(self, devcId):
-        self.writeTerminator = '\r\n'
-
-        super().__init__('Sci-in Tech PS-500 Shutter', devcId)
+    def __init__(self, devc_id):
+        super().__init__('Sci-in Tech PS-500 Shutter', devc_id, write_terminator='\r\n')
         self.initialize()
 
     def initialize(self):
         """Raises JVisaException"""
         super().initialize()
         try:
-            self.readShutterState()
+            self.read_shutter_state()
         except JVisaException as e:
             self.close()
             raise e
 
-    def openShutter(self):
+    def open_shutter(self):
         """Open the shutter."""
-        self.shutter.queryString('$O')
+        self.instrument.queryString('$O')
 
-    def closeShutter(self):
+    def close_shutter(self):
         """Close the shutter."""
-        self.shutter.queryString('$C')
+        self.instrument.queryString('$C')
 
-    def resetShutter(self):
+    def reset_shutter(self):
         """Reset the shutter microcontroller."""
-        self.shutter.queryString('$R')
+        self.instrument.queryString('$R')
 
-    def homeShutter(self):
+    def home_shutter(self):
         """Put the shutter blades in a home position."""
-        self.shutter.queryString('$H')
+        self.instrument.queryString('$H')
 
-    def readShutterState(self):
+    def read_shutter_state(self):
         """Get the state of the shutter.
 
         Returns
