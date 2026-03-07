@@ -223,7 +223,14 @@ class BK9130BDevice(PowerDevice):
         """
         return self._voltages
 
-    def initialize(self)
+    def initialize(self):
+        """Initialize the connection to the power supply.
+
+        Raises
+        ------
+        JVisaException
+            Raised if there is an error communicating with the device.
+        """
         super().initialize()
         self.set_remote()
 

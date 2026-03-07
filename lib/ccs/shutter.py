@@ -9,7 +9,7 @@
 from xyz.froud.jvisa import JVisaException
 from ccs.device import SerialDevice
 
-class SciinTechPS500Device(SerialDevice)
+class SciinTechPS500Device(SerialDevice):
     """Interface to a Sci-in Tech model PS500 shutter device.
 
     Parameters

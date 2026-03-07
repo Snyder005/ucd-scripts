@@ -1,5 +1,5 @@
 #!/usr/bin/env ccs-script
-for xyz.froud.jvisa import JVisaResourceManager, JVisaException
+from xyz.froud.jvisa import JVisaResourceManager, JVisaException
 
 class SerialDevice(object):
     """Interface to a SCPI-commanded device.
