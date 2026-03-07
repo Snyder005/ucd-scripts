@@ -9,29 +9,36 @@
 from xyz.froud.jvisa import JVisaException
 from ccs.device import SerialDevice
 
-class SciinTechPS500(SerialDevice):
+class SciinTechPS500Device(SerialDevice)
+    """Interface to a Sci-in Tech model PS500 shutter device.
+
+    Parameters
+    ----------
+    devc_id : `float`
+        Device resource name.
+    """
 
     def __init__(self, devc_id):
         super().__init__('Sci-in Tech PS-500 Shutter', devc_id, write_terminator='\r\n')
-        self.initialize()
+        if not self.is_shutter_closed():
+            self.close_shutter()
 
-    def initialize(self):
-        """Raises JVisaException"""
-        super().initialize()
-        try:
-            if not self.is_shutter_closed():
-                self.close_shutter() #close shutter
-        except JVisaException as e:
-            self.close()
-            raise e
+    def is_connected(self):
+        """Check if the shutter is connected.
 
-    def close(self):
+        Returns
+        -------
+        connected : `bool`
+            `True` if the shutter is connected. `False` if not.
+        """
         try:
-            super().close()
+            state = self.read_state()
         except JVisaException:
-            return
+            return False
+        else:
+            return True
 
-    def is_shutter_closed(self):
+    def is_closed(self):
         """Check if the shutter is closed.
 
         Returns
@@ -46,19 +53,23 @@ class SciinTechPS500(SerialDevice):
             return False
 
     def open_shutter(self):
-        """Open the shutter."""
+        """Open the shutter.
+        """
         self.instrument.queryString('$O')
 
     def close_shutter(self):
-        """Close the shutter."""
+        """Close the shutter.
+        """
         self.instrument.queryString('$C')
 
     def reset_shutter(self):
-        """Reset the shutter microcontroller."""
+        """Reset the shutter microcontroller.
+        """
         self.instrument.queryString('$R')
 
     def home_shutter(self):
-        """Put the shutter blades in a home position."""
+        """Put the shutter blades in a home position.
+        """
         self.instrument.queryString('$H')
 
     def read_state(self):
