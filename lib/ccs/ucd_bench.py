@@ -1,9 +1,10 @@
-from ccs.sphere import Sphere
-from ccs.shutter import PS500Device
+import logging
 
-SHUTTERDELAY = 1.0
+from ccs.shutter import SciinTechPS500Device
+
+logger = logging.getLogger(__name__)
 
 class UCDBench(object):
 
-    def __init__(self):
-        pass
+    def __init__(self, shutter_id):
+        self.shutter = SciinTechPS500Device(shutter_id)

@@ -1,7 +1,61 @@
 from xyz.froud.jvisa import JVisaResourceManager, JVisaException
 from ccs.power import BK9130BDevice, BK9184Device, BK1697BDevice
-     
+
+# Define as global variable the necessary config files
+
 class UCDPower(object):
+
+    def __init__(self):
+        ## Use parameter files global variables to initialize devices
+        self.hvbias_device = self.BK9184Device()
+        self.power_devices = (BK9130BDevice(), BK9130BDevice(), BK1697Device())
+
+     def power_on(self):
+        """Turn on the REB power, except for HV bias."""
+        try:
+            if not self.is_power_on():
+                pass # Power on code
+        finally:
+            self.update_power_state()
+
+    def power_off(self):
+        """Turns off the REB power."""
+        self.hvbias_device.power_off()
+        try:
+            pass # Power off code
+        finally:
+            self.update_power_state()
+
+   def hvbias_on(self):
+        if self.is_power_on():
+            self.hvbias_device.power_on()
+
+    def hvbias_off(self):
+        self.hvbias_device.power_off()
+
+    def is_hvbias_on(self):
+        return self.hvbias_device.read_output()
+
+    def set_hvbias(self, voltage):
+        self.hvbias_device.voltage = voltage
+        if self.is_hvbias_on:
+            self.hvbias_device.write_voltage()
+
+    def is_power_on(self):
+        """Check if REB power is on.
+
+        Returns
+        -------
+        is_on : `bool`
+            `True` if REB power is on. `False` if not.
+        """
+        is_on = True
+        for device in self.power_devices:
+            if not device.read_output():
+                is_on = False
+                break
+
+        return is_on       
 
     def check_connections() # Check connection to all power supplies
 
@@ -12,8 +66,6 @@ class UCDPower(object):
     def check_volt() # check difference between set values and actual values
 
     def check_for_off_volt() # check difference between 0V and actual values
-
-    def bss_on_arbitrary_voltage() # Turn on BSS with new back bias voltage
 
 class _UCDPower(object):
     

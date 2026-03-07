@@ -6,10 +6,10 @@
 # 2023 Daniel Polin
 # To Do:
 # * Write class method to initialize from config file.
-from xyz.froud.jvisa import JVisaResourceManager, JVisaException
+from xyz.froud.jvisa import JVisaException
 from ccs.device import SerialDevice
 
-class PS500(SerialDevice):
+class SciinTechPS500(SerialDevice):
 
     def __init__(self, devc_id):
         super().__init__('Sci-in Tech PS-500 Shutter', devc_id, write_terminator='\r\n')
@@ -19,10 +19,31 @@ class PS500(SerialDevice):
         """Raises JVisaException"""
         super().initialize()
         try:
-            self.read_shutter_state()
+            if not self.is_shutter_closed():
+                self.close_shutter() #close shutter
         except JVisaException as e:
             self.close()
             raise e
+
+    def close(self):
+        try:
+            super().close()
+        except JVisaException:
+            return
+
+    def is_shutter_closed(self):
+        """Check if the shutter is closed.
+
+        Returns
+        -------
+        is_closed : `bool`
+           `True` if the shutter is closed. `False` if not.
+        """
+        state = self.read_state()
+        if (state == '$B 5') or (state == '$B 10'):
+            return True
+        else:
+            return False
 
     def open_shutter(self):
         """Open the shutter."""
@@ -40,7 +61,7 @@ class PS500(SerialDevice):
         """Put the shutter blades in a home position."""
         self.instrument.queryString('$H')
 
-    def read_shutter_state(self):
+    def read_state(self):
         """Get the state of the shutter.
 
         Returns
@@ -53,18 +74,8 @@ class PS500(SerialDevice):
         JVisaException
             Raised if an unknown response string is encountered.
         """
-        response = self.instrument.queryString('$B').rstrip('\x00\r\n')
-        if response == '$B 9':
-            state = "Shutter Open"
-        elif response == '$B 10':
-            state = "Closed to the right"
-        elif response == '$B 5':
-            state = "Closed to the left"
-        elif response == '$B 8':
-            state = "Opening to the left"
-        elif response == '$B 1':
-            state = "Opening to the right"
-        else:
+        state = self.instrument.queryString('$B').rstrip('\x00\r\n')
+        if state not in ('$B 1', '$B 5', '$B 8', '$B 9', '$B 10'):
             raise JVisaException("Unknown response string encountered: {0}".format(response))
 
         return state

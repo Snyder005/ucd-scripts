@@ -1,5 +1,5 @@
 #!/usr/bin/env ccs-script
-for xyz.froud.jvisa import JVisaResourceManager
+for xyz.froud.jvisa import JVisaResourceManager, JVisaException
 
 class SerialDevice(object):
 
@@ -25,4 +25,7 @@ class SerialDevice(object):
 
     def close(self):
         """Closes the connection to the instrument."""
-        self.instrument.close()
+        try:
+            self.instrument.close()
+        except JVisaException:
+            pass

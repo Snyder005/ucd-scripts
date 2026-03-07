@@ -19,14 +19,22 @@ class PowerDevice(SerialDevice):
         return idn
 
     def is_connected(self):
+        """Check if the instrument is connected.
+
+        Returns
+        -------
+        connected : `bool`
+            `True` if the instrument is connected. `False` if not.
+        """
         try:
             self.read_idn()
         except JVisaException:
-            connected = False
+            return False
         else:
-            conncted = True
+            return True
 
-        return connected
+    def write_all(self):
+        raise NotImplementedError("Subclasses must implement this method.")
 
     def write_output(self, state):
         """Write the output state of the instrument.
@@ -45,6 +53,13 @@ class PowerDevice(SerialDevice):
             self.instrument.write('OUTPUT {0:d}'.format(state))
         else:
             raise TypeError('Not a boolean value: {0}'.format(state))
+
+    def power_on(self):
+        self.write_all()
+        self.write_output(True)
+
+    def power_off(self):
+        self.write_output(False)
 
 class BK9184Device(PowerDevice):
 
