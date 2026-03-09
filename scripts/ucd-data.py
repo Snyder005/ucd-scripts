@@ -24,7 +24,7 @@ class WarningFilter(object):
     def filter(self, log_record): 
         return log_record.levelno != logging.WARNING
 
-def main(cfgfile):
+def main(cfgfile, run=None):
 
     ## Set up logging
     logger = logging.getLogger()
@@ -70,6 +70,7 @@ if __name__ == '__main__':
 
     parser = ArgumentParser(sys.argv[0], add_help=False)
     parser.add_argument('cfgfile', type=str)
+    parser.add_argument('--run', type=str, default=None)    
 
     args = parser.parse_args()
-    main(args.cfgfile)
+    main(args.cfgfile, args.run)
