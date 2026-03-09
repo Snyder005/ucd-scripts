@@ -52,7 +52,7 @@ class BK9184Device(PowerDevice):
         self._voltage = voltage
         self._max_voltage = max_voltage
         self._max_current = max_current
-        super().__init__('B&K 9184 PS', devc_id, baud_rate=57600, write_terminator='\r\n')
+        super(BK9184Device, self).__init__('B&K 9184 PS', devc_id, baud_rate=57600, write_terminator='\r\n')
 
     @property
     def voltage(self):
@@ -215,9 +215,9 @@ class BK9130BDevice(PowerDevice):
     
     def __init__(self, devc_id, voltages):
         self._voltages = voltages
-        super().__init__('B&K 9130B PS', devc_id, baud_rate=4800, write_terminator='\n')
+        super(BK9130BDevice, self).__init__('B&K 9130B PS', devc_id, baud_rate=4800, write_terminator='\n')
 
-    @parameter
+    @property
     def voltages(self):
         """Default operating voltages (`list` [`float`]).
         """
@@ -258,7 +258,7 @@ class BK9130BDevice(PowerDevice):
             Raised if ``channel`` is an invalid channel number.
         """
         self.select_channel(channel)
-        voltage = float(self.instrument.queryString('VOLT?')
+        voltage = float(self.instrument.queryString('VOLT?'))
         return voltage
     
     def read_voltage(self, channel):
@@ -469,9 +469,9 @@ class BK1697BDevice(PowerDevice):
 
     def __init__(self, devc_id, voltage):
         self._voltage = voltage
-        super().__init__('B&K 1697B PS', devc_id, write_terminator='\n')
+        super(BK1697BDevice, self).__init__('B&K 1697B PS', devc_id, write_terminator='\n')
 
-    @parameter
+    @property
     def voltage(self):
         """Default operating voltage (`float`).
         """
@@ -486,6 +486,7 @@ class BK1697BDevice(PowerDevice):
             Setpoint voltage of the power supply.
         """
         voltage = float(self.instrument.queryString('VOLTAGE?').rstrip('V'))
+        return voltage
 
     def read_voltage(self):
         """Read the output voltage of the power supply.
