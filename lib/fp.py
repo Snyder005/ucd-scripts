@@ -8,6 +8,7 @@ import time
 import logging
 
 logger = logging.getLogger(__name__)
+CLEARDELAY = 0.07
 
 fp = CCS.attachProxy("ucd-fp")
 agentName = fp.getAgentProperty("agentName")

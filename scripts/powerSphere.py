@@ -1,10 +1,10 @@
 #!/usr/bin/env ccs-script
 import argparse
-import ucd_sphere
+import SphereConfig
 
 def power_sphere_on():
 
-    sphere = ucd_sphere.Sphere()
+    sphere = SphereConfig.Sphere()
 
     current = sphere.read_photodiode()
     print "Initial current: {0:.3E}".format(current)
@@ -22,7 +22,7 @@ def power_sphere_on():
 
 def power_sphere_off():
 
-    sphere = ucd_sphere.Sphere()
+    sphere = Sphere.Sphere()
 
     current = sphere.read_photodiode()
     print "Initial current: {0:.3E}".format(current)
