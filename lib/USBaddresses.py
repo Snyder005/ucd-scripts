@@ -1,0 +1,6 @@
+BK9130B1address = "ASRL14::INSTR"
+BK9130B2address = "ASRL13::INSTR"
+BK1697address = "ASRL15::INSTR"
+BK9184address = "ASRL11::INSTR"
+shutteraddress= "ASRL10::INSTR"
+stageaddress = "ASRL12::INSTR"
