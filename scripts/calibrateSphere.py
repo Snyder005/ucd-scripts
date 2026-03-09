@@ -2,12 +2,12 @@
 import csv
 import time
 import argparse
-import ucd_sphere
+import SphereConfig
 
 def main(outfile, step=-30):
 
     start = time.time()
-    sphere = ucd_sphere.Sphere()
+    sphere = SphereConfig.Sphere()
     sphere.turn_light_on()
 
     numsteps = int(abs(12000/step)+2)

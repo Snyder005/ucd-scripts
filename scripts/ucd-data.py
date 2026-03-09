@@ -62,20 +62,15 @@ def main(cfgfile, run=None):
     ## Parse config file and execute data acquisition
     try:
         cfg = config.parseConfig(cfgfile)
-        config.execute(cfg, {"run" : run})
+        config.execute(cfg, {"run" : None}) # is the run object needed?
     except (JException, Exception):
         logger.exception("Fatal error occurred in data acquisition.")
-
-    ## Stop BSS monitoring if it is running
-    if background_thread.is_alive():
-        stop_event.set()
-        background_thread.join()
 
 if __name__ == '__main__':
 
     parser = ArgumentParser(sys.argv[0], add_help=False)
     parser.add_argument('cfgfile', type=str)
-    parser.add_argument('--run', type=str, default=None)
+    parser.add_argument('--run', type=str, default=None)    
 
     args = parser.parse_args()
     main(args.cfgfile, args.run)
