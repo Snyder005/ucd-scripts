@@ -1,3 +1,0 @@
-set target ucd-fp
-
-printConfigurationParameters Sequencer
