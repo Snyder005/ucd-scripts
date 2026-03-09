@@ -14,7 +14,6 @@ fp = CCS.attachProxy("ucd-fp")
 agentName = fp.getAgentProperty("agentName")
 if agentName != "ucd-fp":
     fp = CCS.attachProxy(agentName)
-imageTimeout = Duration.ofSeconds(60)
 
 def sanityCheck():
 
@@ -47,7 +46,7 @@ def takeExposure(exposeCommand=None, fitsHeaderData=None, annotation=None, locat
     try:
 
         fp.endIntegration()
-        im = fp.waitForFitsFiles(imageTimeout)
+        im = fp.waitForFitsFiles(Duration.ofSeconds(60))
     except:
         raise
 

@@ -1,3 +1,5 @@
+# Initialize bench subsystem.
+# Includes functions to interface with the subsystem and add logging
 import time
 import logging
 import SphereConfig
