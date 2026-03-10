@@ -19,7 +19,7 @@ class SciinTechPS500Device(SerialDevice):
     """
 
     def __init__(self, devc_id):
-        super().__init__('Sci-in Tech PS-500 Shutter', devc_id, write_terminator='\r\n')
+        super(SciinTechPS500Device, self).__init__('Sci-in Tech PS-500 Shutter', devc_id, write_terminator='\r\n')
         if not self.is_shutter_closed():
             self.close_shutter()
 

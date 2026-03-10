@@ -1,8 +1,13 @@
 #!/usr/bin/env ccs-script
 from xyz.froud.jvisa import JVisaResourceManager, JVisaException
+from com.fazecast.jSerialComm import SerialPort
+
+import jarray
+
+# Add support for read_terminator
 
 class SerialDevice(object):
-    """Interface to a SCPI-commanded device.
+    """Interface to a serial device.
 
     Parameters
     ----------
@@ -23,7 +28,8 @@ class SerialDevice(object):
         self._devc_id = devc_id
         self._baud_rate = baud_rate
         self._write_terminator = write_terminator
-        self._read_terminator = read_terminator
+        self._read_terminator = read_terminator # Not used
+        self._port = None # Needed?
         self.initialize()
 
     @property
@@ -57,45 +63,45 @@ class SerialDevice(object):
         return self._read_terminator
 
     @property
-    def instrument(self):
-        """A VISA instrument (`xyz.froud.jvisa.JVisaInstrument`).
+    def port(self):
+        """A serial port (`com.fazecast.jSerialComm.SerialPort`).
         """
-        return self._instrument
+        return self._port
 
     def initialize(self):
-        """Initialize the connection to the instrument.
-
-        Raises
-        ------
-        JVisaException
-            Raised if there is an error communicating with the device.
-        """
-        rm = JVisaResourceManager()
-        self._instrument = rm.openInstrument(self.devc_id)
+        self._port = SerialPort.getCommPort(self._devc_id) # can throw an exception if devc_id is not identified
         if self.baud_rate is not None:
-            self.instrument.setSerialBaudRate(self.baud_rate)
-        if self.write_terminator is not None:
-            self.instrument.setWriteTerminator(self.write_terminator)
-        if self.read_terminator is not None:
-            self.instrument.setReadTerminationCharacter(self.read_terminator)
-        
-        if not self.is_connected():
+            self.port.setBaudRate(self.baud_rate)
+        self.port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 1000, 0) # check parameters, is read timeout of 1000ms needed?
+        self.port.openPort()
+
+        if not self.is_connected(): # Throw exception if not connected
             self.close()
-            raise JVisaException("Error communicating with device: {0}".format(self.devc_name)) 
+            raise IOError("Failed to open port {0}".format(self._devc_id))
 
     def close(self):
-        """Closes the connection to the instrument."""
-        try:
-            self.instrument.close()
-        except JVisaException:
-            pass
+        if self.port.isOpen():
+            self.port.closePort()
 
     def is_connected(self):
-        """Check if the instrument is connected.
+        return self.port.isOpen()
 
-        Raises
-        ------
-        NotImplementedError
-            Raised if not implemented in child class.
-        """
-        raise NotImplementedError
+    def write(self, cmd):
+        cmd = cmd + self._write_terminator
+        n = self.port.writeBytes(cmd, len(cmd))
+
+        if n < 0: # Throw exception if write failes
+            raise IOError("Write failed.") # Replace with custom error
+
+    def read(self, num_bytes=1024):
+
+        buff = jarray.zeros(num_bytes, 'b')
+        n = self.port.readBytes(buff, len(buff))
+
+        return str(bytearray(buff[:n])).rstrip() if n > 0 else str()
+
+    def query(self, cmd, num_bytes=1024):
+        self.write(cmd)
+        res = self.read(num_bytes)
+
+        return res
