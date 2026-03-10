@@ -23,13 +23,12 @@ class SerialDevice(object):
         Read operation terminator.
     """
 
-    def __init__(self, devc_name, devc_id, baud_rate=None, write_terminator=None, read_terminator=None):
+    def __init__(self, devc_name, devc_id, baud_rate=None, write_terminator=None):
         self._devc_name = devc_name
         self._devc_id = devc_id
         self._baud_rate = baud_rate
         self._write_terminator = write_terminator
-        self._read_terminator = read_terminator # Not used
-        self._port = None # Needed?
+        self._read_terminator = '\n'
         self.initialize()
 
     @property
@@ -72,7 +71,7 @@ class SerialDevice(object):
         self._port = SerialPort.getCommPort(self._devc_id) # can throw an exception if devc_id is not identified
         if self.baud_rate is not None:
             self.port.setBaudRate(self.baud_rate)
-        self.port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 1000, 0) # check parameters, is read timeout of 1000ms needed?
+        self.port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 1000, 0)
         self.port.openPort()
 
         if not self.is_connected(): # Throw exception if not connected
@@ -90,15 +89,42 @@ class SerialDevice(object):
         cmd = cmd + self._write_terminator
         n = self.port.writeBytes(cmd, len(cmd))
 
-        if n < 0: # Throw exception if write failes
-            raise IOError("Write failed.") # Replace with custom error
+        if n < 0: # Throw exception if write fails
+            raise IOError("Write failed.")
 
     def read(self, num_bytes=1024):
+        """Read until no bytes returned. Last read will be a timeout.
 
-        buff = jarray.zeros(num_bytes, 'b')
-        n = self.port.readBytes(buff, len(buff))
+        Returns
+        -------
+        buffer up till no pixels read
+        """
+        buf = jarray.zeros(num_bytes, 'b')
+        n = 0
+        while n < len(buf):
+            num_read = self.port.readBytes(buf, 1, n)
+            if num_read < 1:
+                break
+            n += 1
 
-        return str(bytearray(buff[:n])).rstrip() if n > 0 else str()
+        return str(bytearray(buf[:n]))
+
+    def readUntilTerm(self, num_bytes=1024):
+        """Read until read term encountered.
+
+        Returns
+        -------
+        buffer minus the read term
+        """
+        buf = jarray.zeros(num_bytes, 'b')
+        n = 0
+        while n < num_bytes:
+            num_read = self.port.readBytes(buf, 1, n) 
+            if num_read < 1 or buf[n] == ord(self.read_terminator[0]):
+                break
+            n += 1
+      
+        return str(bytearray(buf[:n]))
 
     def query(self, cmd, num_bytes=1024):
         self.write(cmd)

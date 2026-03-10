@@ -15,7 +15,7 @@ class PowerDevice(SerialDevice):
         idn : `str`
             Identification string of the power supply.
         """
-        idn = str(self.instrument.queryString('*IDN?'))
+        idn = self.query('*IDN?')
         return idn
 
     def is_connected(self):
@@ -26,9 +26,11 @@ class PowerDevice(SerialDevice):
         connected : `bool`
             `True` if the power supply is connected. `False` if not.
         """
+        if not super(PowerDevice, self).is_connected():
+            return False
         try:
-            idn = self.read_idn()
-        except JVisaException:
+            idn = self.read_idn() # Must throw an exception
+        except:
             return False
         else:
             return True
@@ -485,7 +487,7 @@ class BK1697BDevice(PowerDevice):
         voltage : `float`
             Setpoint voltage of the power supply.
         """
-        voltage = float(self.instrument.queryString('VOLTAGE?').rstrip('V'))
+        voltage = float(self.query('VOLTAGE?').rstrip('V\r\n'))
         return voltage
 
     def read_voltage(self):
@@ -496,7 +498,7 @@ class BK1697BDevice(PowerDevice):
         voltage : `float`
             Output voltage of the power supply.
         """
-        voltage = float(self.instrument.queryString('MEASURE:VOLTAGE?').rstrip('V'))
+        voltage = float(self.query('MEASURE:VOLTAGE?').rstrip('V\r\n'))
         return voltage
 
     def write_voltage(self, voltage=None):
@@ -510,7 +512,7 @@ class BK1697BDevice(PowerDevice):
         """
         if voltage is None:
             voltage = self.voltage
-        self.instrument.write('VOLTAGE {0:.2f}V'.format(voltage))
+        self.write('VOLTAGE {0:.2f}V'.format(voltage))
 
     def read_output(self):
         """Read the output state of the power supply.
@@ -525,13 +527,13 @@ class BK1697BDevice(PowerDevice):
         JVisaException
             Raised if an unknown response string is encountered.
         """
-        response = self.instrument.queryString('OUTPUT?')
+        response = self.query('OUTPUT?').rstrip('\r\n')
         if response == '0':
             state = 'ON'
         elif response == '1':
             state = 'OFF'
         else:
-            raise JVisaException("Unknown response string encountered: {0}".format(response))
+            raise IOError("Unknown response string encountered: {0}".format(response))
         return state
 
     def write_output(self, state):
@@ -548,8 +550,8 @@ class BK1697BDevice(PowerDevice):
             Raised if ``state`` is an invalid value.
         """
         if state == 'ON':
-            self.instrument.write('OUTPUT 0')
+            self.write('OUTPUT 0')
         elif state == 'OFF':
-            self.instrument.write('OUTPUT 1')
+            self.write('OUTPUT 1')
         else:
             raise ValueError("Not a valid value: {0}".format(state))
