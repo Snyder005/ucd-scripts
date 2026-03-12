@@ -304,6 +304,7 @@ class BK9130BDevice(PowerDevice):
             Setpoint voltages of the power supply channels.
         """
         voltages = [float(res) for res in self.query('APP:VOLT?').split(',')]
+        return voltages
 
     def read_voltages(self):
         """Read the output voltages of the power supply channels.
