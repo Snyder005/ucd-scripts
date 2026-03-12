@@ -203,6 +203,11 @@ class BK9184Device(PowerDevice):
         else:
             raise ValueError("Not a valid value: {0}".format(state))
 
+    def write_all(self):
+        self.write_voltage()
+        self.write_max_voltage()
+        self.write_max_current()
+
 class BK9130BDevice(PowerDevice):
     """Interface to a B&K model 9130B power supply device.
 
@@ -215,7 +220,7 @@ class BK9130BDevice(PowerDevice):
     """
     
     def __init__(self, devc_id, voltages):
-        self._voltages = voltages
+        self._voltages = voltages # check that three provided
         super(BK9130BDevice, self).__init__('B&K 9130B PS', devc_id, baud_rate=4800, 
                                             write_terminator='\n', read_terminator='\n')
 
@@ -224,22 +229,6 @@ class BK9130BDevice(PowerDevice):
         """Default operating voltages (`list` [`float`]).
         """
         return self._voltages
-
-    def initialize(self):
-        """Initialize the connection to the power supply.
-
-        Raises
-        ------
-        JVisaException
-            Raised if there is an error communicating with the device.
-        """
-        super().initialize()
-        self.set_remote()
-
-    def set_remote(self):
-        """Enables remote operation of the power supply.
-        """
-        self.write('SYS:REM')
 
     def get_voltage(self, channel):
         """Get setpoint voltage of a power supply channel.
@@ -407,7 +396,7 @@ class BK9130BDevice(PowerDevice):
         JVisaException
             Raised if an unknown response string is encountered.
         """
-        responses = self.query('APP:OUT?').split(',')
+        responses = [res.lstrip() for res in self.query('APP:OUT?').split(',')]
         states = []
         for response in responses:
             if response == '0':
@@ -457,6 +446,10 @@ class BK9130BDevice(PowerDevice):
         if channel not in [1, 2, 3]:
             raise IOError("Invalid channel number: {0}".format(channel))
         self.write('INST:NSEL {0}'.format(channel))
+
+    def read_channel(self, channel):
+        channel = int(self.query('INST:NSEL?'))
+        return channel
 
 class BK1697BDevice(PowerDevice):
     """Interface to a B&K model 1697B power supply device.
