@@ -1,6 +1,4 @@
 #!/usr/bin/env ccs-script
-# This will eventually hold all power devices and UCDPower subsystem
-from xyz.froud.jvisa import JVisaResourceManager, JVisaException
 from ccs.device import SerialDevice
 
 __all__ = ['BK9130BDevice', 'BK9184Device', 'BK1697BDevice']
@@ -15,7 +13,7 @@ class PowerDevice(SerialDevice):
         idn : `str`
             Identification string of the power supply.
         """
-        idn = self.query('*IDN?')
+        idn = self.query('*IDN?') # Throws any exceptions from read/write
         return idn
 
     def is_connected(self):
@@ -54,7 +52,8 @@ class BK9184Device(PowerDevice):
         self._voltage = voltage
         self._max_voltage = max_voltage
         self._max_current = max_current
-        super(BK9184Device, self).__init__('B&K 9184 PS', devc_id, baud_rate=57600, write_terminator='\r\n')
+        super(BK9184Device, self).__init__('B&K 9184 PS', devc_id, baud_rate=57600, 
+                                           write_terminator='\r\n', read_terminator='\r\n')
 
     @property
     def voltage(self):
@@ -82,7 +81,7 @@ class BK9184Device(PowerDevice):
         voltage : `float`
             Setpoint voltage of the power supply.
         """
-        voltage = float(self.instrument.queryString('VOLT?'))
+        voltage = float(self.query('VOLT?'))
         return voltage
 
     def read_voltage(self):
@@ -93,7 +92,7 @@ class BK9184Device(PowerDevice):
         voltage : `float`
             Output voltage of the power supply.
         """
-        voltage = float(self.instrument.queryString('MEAS:VOLT?'))
+        voltage = float(self.query('MEAS:VOLT?'))
         return voltage
 
     def write_voltage(self, voltage=None):
@@ -107,7 +106,7 @@ class BK9184Device(PowerDevice):
         """
         if voltage is None:
             voltage = self.voltage
-        self.instrument.write('VOLT {0:.3f}'.format(voltage))
+        self.write('VOLT {0:.3f}'.format(voltage))
 
     def read_current(self):
         """Read the output current of the supply.
@@ -117,7 +116,7 @@ class BK9184Device(PowerDevice):
         current : `float`
             Output current of the power supply.
         """
-        current = float(self.instrument.queryString('MEAS:CURR?'))
+        current = float(self.query('MEAS:CURR?'))
         return current
 
     def read_max_voltage(self):
@@ -128,7 +127,7 @@ class BK9184Device(PowerDevice):
         max_voltage : `float`
             Maximum operating voltage of the power supply.
         """
-        max_voltage = float(self.instrument.queryString('OUT:LIM:VOLT?'))
+        max_voltage = float(self.query('OUT:LIM:VOLT?'))
         return max_voltage
 
     def write_max_voltage(self, voltage=None):
@@ -142,7 +141,7 @@ class BK9184Device(PowerDevice):
         """
         if voltage is None:
             voltage = self.max_voltage
-        self.instrument.write('OUT:LIM:VOLT {0:.3f}'.format(voltage))
+        self.write('OUT:LIM:VOLT {0:.3f}'.format(voltage))
 
     def read_max_current(self):
         """Read the maximum operating current of the power supply.
@@ -152,7 +151,7 @@ class BK9184Device(PowerDevice):
         max_current : `float`
             Maximum operating current of the power supply.
         """
-        max_current = float(self.instrument.queryString('OUT:LIM:CURR?'))
+        max_current = float(self.query('OUT:LIM:CURR?'))
         return max_current
 
     def write_max_current(self, current=None):
@@ -166,7 +165,7 @@ class BK9184Device(PowerDevice):
         """
         if current is None:
             current = self.max_current
-        self.instrument.write('OUT:LIM:CURR {0:.3f}'.format(current))
+        self.write('OUT:LIM:CURR {0:.3f}'.format(current))
 
     def read_output(self): # check return type (str or bool)
         """Read the output state of the power supply.
@@ -181,9 +180,9 @@ class BK9184Device(PowerDevice):
         JVisaException
             Raised if an unknown response string is encountered.
         """
-        state = str(self.instrument.queryString('OUT?'))
+        state = self.query('OUT?')
         if state not in {'ON', 'OFF'}:
-            raise JVisaException("Unknown response string encountered: {0}".format(state))
+            raise IOError("Unknown response string encountered: {0}".format(state))
         return state
 
     def write_output(self, state):
@@ -217,7 +216,8 @@ class BK9130BDevice(PowerDevice):
     
     def __init__(self, devc_id, voltages):
         self._voltages = voltages
-        super(BK9130BDevice, self).__init__('B&K 9130B PS', devc_id, baud_rate=4800, write_terminator='\n')
+        super(BK9130BDevice, self).__init__('B&K 9130B PS', devc_id, baud_rate=4800, 
+                                            write_terminator='\n', read_terminator='\n')
 
     @property
     def voltages(self):
@@ -239,7 +239,7 @@ class BK9130BDevice(PowerDevice):
     def set_remote(self):
         """Enables remote operation of the power supply.
         """
-        self.instrument.write('SYS:REM')
+        self.write('SYS:REM')
 
     def get_voltage(self, channel):
         """Get setpoint voltage of a power supply channel.
@@ -260,7 +260,7 @@ class BK9130BDevice(PowerDevice):
             Raised if ``channel`` is an invalid channel number.
         """
         self.select_channel(channel)
-        voltage = float(self.instrument.queryString('VOLT?'))
+        voltage = float(self.query('VOLT?'))
         return voltage
     
     def read_voltage(self, channel):
@@ -282,7 +282,7 @@ class BK9130BDevice(PowerDevice):
             Raised if ``channel`` is an invalid channel number.
         """
         self.select_channel(channel)
-        voltage = float(self.instrument.queryString('MEAS:VOLT?'))
+        voltage = float(self.query('MEAS:VOLT?'))
         return voltage
 
     def write_voltage(self, channel, voltage=None):
@@ -304,7 +304,7 @@ class BK9130BDevice(PowerDevice):
         self.select_channel(channel)
         if voltage is None:
             voltage = self.voltages[chan-1]
-        self.instrument.write('VOLT {0:.1f}'.format(voltage))
+        self.write('VOLT {0:.1f}'.format(voltage))
         
     def get_voltages(self):
         """Get the setpoint voltages of the power supply channels.
@@ -314,7 +314,7 @@ class BK9130BDevice(PowerDevice):
         voltages : `list` [`float`]
             Setpoint voltages of the power supply channels.
         """
-        voltages = [float(res) for res in self.instrument.queryString('APP:VOLT?').split(',')]
+        voltages = [float(res) for res in self.query('APP:VOLT?').split(',')]
 
     def read_voltages(self):
         """Read the output voltages of the power supply channels.
@@ -324,7 +324,7 @@ class BK9130BDevice(PowerDevice):
         voltages : `list` [`float`]
             Output voltages of the power supply channels.
         """
-        voltages = [float(res) for res in self.instrument.queryString('MEAS:VOLT:ALL?').split(',')]
+        voltages = [float(res) for res in self.query('MEAS:VOLT:ALL?').split(',')]
         return voltages
 
     def write_voltages(self, voltages=None):
@@ -338,7 +338,7 @@ class BK9130BDevice(PowerDevice):
         """
         if voltages is None:
             voltages = self.voltages
-        self.instrument.write('APP:VOLT {0:.1f},{1:.1f},{2:.1f}'.format(*voltages))
+        self.write('APP:VOLT {0:.1f},{1:.1f},{2:.1f}'.format(*voltages))
 
     def read_output(self, channel):
         """Read the output state of the power supply channel.
@@ -360,13 +360,13 @@ class BK9130BDevice(PowerDevice):
             response string is encountered.
         """
         self.select_channel(channel)
-        response = self.instrument.queryString('CHAN:OUTP?')
+        response = self.query('CHAN:OUTP?')
         if response == '0':
             state = 'OFF'
         elif response == '1':
             state = 'ON'
         else:
-            raise JVisaException("Unknown response string encountered: {0}".format(response))
+            raise IOError("Unknown response string encountered: {0}".format(response))
         return state
 
     def write_output(self, channel, state):
@@ -388,9 +388,9 @@ class BK9130BDevice(PowerDevice):
         """
         self.select_channel(channel)
         if state == 'ON':
-            self.instrument.write('CHAN:OUTP 1')
+            self.write('CHAN:OUTP 1')
         elif state == 'OFF':
-            self.instrument.write('CHAN:OUTP 0')
+            self.write('CHAN:OUTP 0')
         else:
             raise ValueError("Not a valid value: {0}".format(state))
 
@@ -407,7 +407,7 @@ class BK9130BDevice(PowerDevice):
         JVisaException
             Raised if an unknown response string is encountered.
         """
-        responses = self.instrument.queryString('APP:OUT?').split(',')
+        responses = self.query('APP:OUT?').split(',')
         states = []
         for response in responses:
             if response == '0':
@@ -415,7 +415,7 @@ class BK9130BDevice(PowerDevice):
             elif response == '1':
                 states.append('ON')
             else:
-                raise JVisaException("Unknown response string encountered: {0}".format(response))
+                raise IOError("Unknown response string encountered: {0}".format(response))
         return states
 
     def write_outputs(self, states):
@@ -439,7 +439,7 @@ class BK9130BDevice(PowerDevice):
                 outputs.append('1')
             else:
                 raise ValueError("Not a valid value: {0}".format(state))
-        self.instrument.write('APP:OUT {0},{1},{2}'.format(*outputs))
+        self.write('APP:OUT {0},{1},{2}'.format(*outputs))
         
     def select_channel(self, channel):
         """Select the power supply channel.
@@ -455,8 +455,8 @@ class BK9130BDevice(PowerDevice):
             Raised if ``channel`` is an invalid channel number.
         """
         if channel not in [1, 2, 3]:
-            raise JVisaException("Invalid channel number: {0}".format(channel))
-        self.instrument.write('INST:NSEL {0}'.format(channel))
+            raise IOError("Invalid channel number: {0}".format(channel))
+        self.write('INST:NSEL {0}'.format(channel))
 
 class BK1697BDevice(PowerDevice):
     """Interface to a B&K model 1697B power supply device.
@@ -471,7 +471,8 @@ class BK1697BDevice(PowerDevice):
 
     def __init__(self, devc_id, voltage):
         self._voltage = voltage
-        super(BK1697BDevice, self).__init__('B&K 1697B PS', devc_id, write_terminator='\n')
+        super(BK1697BDevice, self).__init__('B&K 1697B PS', devc_id, baud_rate=9600, 
+                                            write_terminator='\n', read_terminator='\r\n')
 
     @property
     def voltage(self):
@@ -487,7 +488,7 @@ class BK1697BDevice(PowerDevice):
         voltage : `float`
             Setpoint voltage of the power supply.
         """
-        voltage = float(self.query('VOLTAGE?').rstrip('V\r\n'))
+        voltage = float(self.query('VOLTAGE?').rstrip('V'))
         return voltage
 
     def read_voltage(self):
@@ -498,7 +499,7 @@ class BK1697BDevice(PowerDevice):
         voltage : `float`
             Output voltage of the power supply.
         """
-        voltage = float(self.query('MEASURE:VOLTAGE?').rstrip('V\r\n'))
+        voltage = float(self.query('MEASURE:VOLTAGE?').rstrip('V'))
         return voltage
 
     def write_voltage(self, voltage=None):
