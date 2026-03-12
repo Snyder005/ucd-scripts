@@ -6,7 +6,6 @@
 # 2023 Daniel Polin
 # To Do:
 # * Write class method to initialize from config file.
-from xyz.froud.jvisa import JVisaException
 from ccs.device import SerialDevice
 
 class SciinTechPS500Device(SerialDevice):
@@ -19,9 +18,10 @@ class SciinTechPS500Device(SerialDevice):
     """
 
     def __init__(self, devc_id):
-        super(SciinTechPS500Device, self).__init__('Sci-in Tech PS-500 Shutter', devc_id, write_terminator='\r\n')
-        if not self.is_shutter_closed():
-            self.close_shutter()
+        super(SciinTechPS500Device, self).__init__('Sci-in Tech PS-500 Shutter', devc_id, baud_rate=9600,
+                                                   write_terminator='\r\n', read_terminator='\r\n')
+#        if not self.is_shutter_closed():
+#            self.close_shutter()
 
     def is_connected(self):
         """Check if the shutter is connected.
@@ -31,9 +31,11 @@ class SciinTechPS500Device(SerialDevice):
         connected : `bool`
             `True` if the shutter is connected. `False` if not.
         """
+        if not super(SciinTechPS500Device, self).is_connected():
+            return False
         try:
             state = self.read_state()
-        except JVisaException:
+        except: # Catch known exceptions here
             return False
         else:
             return True
@@ -55,22 +57,22 @@ class SciinTechPS500Device(SerialDevice):
     def open_shutter(self):
         """Open the shutter.
         """
-        self.instrument.queryString('$O')
+        self.query('$O')
 
     def close_shutter(self):
         """Close the shutter.
         """
-        self.instrument.queryString('$C')
+        self.query('$C')
 
     def reset_shutter(self):
         """Reset the shutter microcontroller.
         """
-        self.instrument.queryString('$R')
+        self.query('$R')
 
     def home_shutter(self):
         """Put the shutter blades in a home position.
         """
-        self.instrument.queryString('$H')
+        self.query('$H')
 
     def read_state(self):
         """Get the state of the shutter.
@@ -85,8 +87,8 @@ class SciinTechPS500Device(SerialDevice):
         JVisaException
             Raised if an unknown response string is encountered.
         """
-        state = self.instrument.queryString('$B').rstrip('\x00\r\n')
+        state = self.query('$B').rstrip('\x00')
         if state not in ('$B 1', '$B 5', '$B 8', '$B 9', '$B 10'):
-            raise JVisaException("Unknown response string encountered: {0}".format(response))
+            raise IOError("Unknown response string encountered: {0}".format(response))
 
         return state

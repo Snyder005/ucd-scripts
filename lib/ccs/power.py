@@ -199,7 +199,7 @@ class BK9184Device(PowerDevice):
             Raised if parameter ``state`` is an invalid value.
         """
         if state in ['ON', 'OFF']:
-            self.instrument.write('OUT {0}'.format(state))
+            self.write('OUT {0}'.format(state))
         else:
             raise ValueError("Not a valid value: {0}".format(state))
 
