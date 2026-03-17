@@ -1,23 +1,18 @@
 #!/usr/bin/env ccs-script
+# To Do:
+# * (Optional) Add ID check to initialize method
 from ccs.device import SerialDevice
 
 __all__ = ['BK9130BDevice', 'BK9184Device', 'BK1697BDevice']
 
 class PowerDevice(SerialDevice):
 
-    def read_idn(self):
-        """Read the identification string of the power supply.
-
-        Returns
-        -------
-        idn : `str`
-            Identification string of the power supply.
-        """
-        idn = self.query('*IDN?') # Throws any exceptions from read/write
-        return idn
-
     def is_connected(self):
         """Check if the power supply is connected.
+
+        All SerialDevice instances check if the connection to the serial port
+        is open. PowerDevice and child class instances also verify successful
+        read/write operations by querying for the device ID.
 
         Returns
         -------
@@ -27,11 +22,127 @@ class PowerDevice(SerialDevice):
         if not super(PowerDevice, self).is_connected():
             return False
         try:
-            idn = self.read_idn() # Must throw an exception
+            idn = self.get_idn() # Must throw an exception
         except:
             return False
         else:
             return True
+
+    def get_idn(self):
+        """Get the identification string of the power supply.
+
+        Returns
+        -------
+        idn : `str`
+            Identification string of the power supply.
+        """
+        idn = self.query('*IDN?') # Throws any exceptions from read/write
+        return idn
+
+    def clear_status(self):
+        """Clear the device status and errors.
+        """
+        self.write('*CLS')
+
+
+class BK1697BDevice(PowerDevice):
+    """Interface to a B&K model 1697B power supply device.
+
+    Parameters
+    ----------
+    devc_id : `str`
+        Device resource name.
+    voltage : `float`
+        Default operating voltage of the power supply.
+    """
+
+    def __init__(self, devc_id, voltage):
+        self._voltage = voltage
+        super(BK1697BDevice, self).__init__('B&K 1697B PS', devc_id, baud_rate=9600, 
+                                            write_terminator='\n', read_terminator='\r\n')
+
+    @property
+    def voltage(self):
+        """Default operating voltage (`float`).
+        """
+        return self._voltage
+
+    def get_voltage(self):
+        """Get the setpoint voltage of the power supply.
+
+        Returns
+        -------
+        voltage : `float`
+            Setpoint voltage of the power supply.
+        """
+        voltage = float(self.query('VOLTAGE?').rstrip('V'))
+        return voltage
+
+    def read_voltage(self):
+        """Read the output voltage of the power supply.
+
+        Returns
+        -------
+        voltage : `float`
+            Output voltage of the power supply.
+        """
+        voltage = float(self.query('MEASURE:VOLTAGE?').rstrip('V'))
+        return voltage
+
+    def write_voltage(self, voltage=None): # set_voltage?
+        """Write the setpoint voltage to the power supply.
+
+        Parameters
+        ----------
+        voltage : `float`, optional
+            Setpoint voltage of the power supply, the default operating 
+            voltage, if none is provided.
+        """
+        if voltage is None:
+            voltage = self.voltage
+        self.write('VOLTAGE {0:.2f}V'.format(voltage))
+
+    def get_output(self):
+        """Get the output state of the power supply.
+
+        Returns
+        -------
+        state : {'ON', 'OFF'}
+            Output state of the power supply.
+
+        Raises
+        ------
+        IOError
+            Raised if an unknown response string is encountered.
+        """
+        response = self.query('OUTPUT?').rstrip('\r\n')
+        if response == '0':
+            state = 'ON'
+        elif response == '1':
+            state = 'OFF'
+        else:
+            raise IOError("Unknown response string encountered: {0}".format(response))
+        return state
+
+    def set_output(self, state):
+        """Set the output state of the power supply.
+
+        Parameters
+        ----------
+        state : {'ON', 'OFF'}
+            Output state of the power supply."
+
+        Raises
+        ------
+        ValueError
+            Raised if ``state`` is an invalid value.
+        """
+        if state == 'ON':
+            self.write('OUTPUT 0')
+        elif state == 'OFF':
+            self.write('OUTPUT 1')
+        else:
+            raise ValueError("Not a valid value: {0}".format(state))
 
 class BK9184Device(PowerDevice):
     """Interface to a B&K model 9184 power supply device.
@@ -167,8 +278,8 @@ class BK9184Device(PowerDevice):
             current = self.max_current
         self.write('OUT:LIM:CURR {0:.3f}'.format(current))
 
-    def read_output(self): # check return type (str or bool)
-        """Read the output state of the power supply.
+    def get_output(self):
+        """Get the output state of the power supply.
 
         Returns
         -------
@@ -185,8 +296,8 @@ class BK9184Device(PowerDevice):
             raise IOError("Unknown response string encountered: {0}".format(state))
         return state
 
-    def write_output(self, state):
-        """Write the output state of the power supply.
+    def set_output(self, state):
+        """Set the output state of the power supply.
 
         Parameters
         ----------
@@ -360,7 +471,7 @@ class BK9130BDevice(PowerDevice):
         return state
 
     def write_output(self, channel, state):
-        """Write the output state of the power supply.
+        """Write the output state of the power supply channel.
 
         Parameters
         ----------
@@ -424,14 +535,15 @@ class BK9130BDevice(PowerDevice):
         outputs = []
         for state in states:
             if state == 'ON':
-                outputs.append('0')
-            elif state == 'OFF':
                 outputs.append('1')
+            elif state == 'OFF':
+                outputs.append('0')
             else:
                 raise ValueError("Not a valid value: {0}".format(state))
-        self.write('APP:OUT {0},{1},{2}'.format(*outputs))
-        
-    def select_channel(self, channel):
+
+        self.write('APP:OUT {0},{1},{2}'.format(*outputs))        
+
+    def write_select(self, channel):
         """Select the power supply channel.
 
         Parameters
@@ -441,112 +553,20 @@ class BK9130BDevice(PowerDevice):
 
         Raises
         ------
-        JVisaException
+        IOError
             Raised if ``channel`` is an invalid channel number.
         """
         if channel not in [1, 2, 3]:
             raise IOError("Invalid channel number: {0}".format(channel))
         self.write('INST:NSEL {0}'.format(channel))
 
-    def read_channel(self, channel):
+    def read_select(self):
+        """Read the power supply channel number.
+        
+        Returns
+        -------
+        channel : {1, 2, 3}
+            Power supply channel number.
+        """
         channel = int(self.query('INST:NSEL?'))
         return channel
-
-class BK1697BDevice(PowerDevice):
-    """Interface to a B&K model 1697B power supply device.
-
-    Parameters
-    ----------
-    devc_id : `str`
-        Device resource name.
-    voltage : `float`
-        Default operating voltage of the power supply.
-    """
-
-    def __init__(self, devc_id, voltage):
-        self._voltage = voltage
-        super(BK1697BDevice, self).__init__('B&K 1697B PS', devc_id, baud_rate=9600, 
-                                            write_terminator='\n', read_terminator='\r\n')
-
-    @property
-    def voltage(self):
-        """Default operating voltage (`float`).
-        """
-        return self._voltage
-
-    def get_voltage(self):
-        """Get the setpoint voltage of the power supply.
-
-        Returns
-        -------
-        voltage : `float`
-            Setpoint voltage of the power supply.
-        """
-        voltage = float(self.query('VOLTAGE?').rstrip('V'))
-        return voltage
-
-    def read_voltage(self):
-        """Read the output voltage of the power supply.
-
-        Returns
-        -------
-        voltage : `float`
-            Output voltage of the power supply.
-        """
-        voltage = float(self.query('MEASURE:VOLTAGE?').rstrip('V'))
-        return voltage
-
-    def write_voltage(self, voltage=None):
-        """Write the setpoint voltage to the power supply.
-
-        Parameters
-        ----------
-        voltage : `float`, optional
-            Setpoint voltage of the power supply (the default operating 
-            voltage, by default).
-        """
-        if voltage is None:
-            voltage = self.voltage
-        self.write('VOLTAGE {0:.2f}V'.format(voltage))
-
-    def read_output(self):
-        """Read the output state of the power supply.
-
-        Returns
-        -------
-        state : {'ON', 'OFF'}
-            Output state of the power supply.
-
-        Raises
-        ------
-        JVisaException
-            Raised if an unknown response string is encountered.
-        """
-        response = self.query('OUTPUT?').rstrip('\r\n')
-        if response == '0':
-            state = 'ON'
-        elif response == '1':
-            state = 'OFF'
-        else:
-            raise IOError("Unknown response string encountered: {0}".format(response))
-        return state
-
-    def write_output(self, state):
-        """Write the output state of the power supply.
-
-        Parameters
-        ----------
-        state : {'ON', 'OFF'}
-            Output state of the power supply."
-
-        Raises
-        ------
-        ValueError
-            Raised if ``state`` is an invalid value.
-        """
-        if state == 'ON':
-            self.write('OUTPUT 0')
-        elif state == 'OFF':
-            self.write('OUTPUT 1')
-        else:
-            raise ValueError("Not a valid value: {0}".format(state))

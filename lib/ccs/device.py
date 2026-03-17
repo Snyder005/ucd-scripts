@@ -4,7 +4,7 @@ from com.fazecast.jSerialComm import SerialPort
 import jarray
 
 # Add error handling
-# * What errors raised? openPort, closePort, readBytes, writeBytes
+# * What errors raised? readBytes
 # Add support for two character read_terminator.
 # * Currently only supports single character read terminator
 
@@ -74,15 +74,17 @@ class SerialDevice(object):
 
         Raises
         ------
+        SerialPortInvalidPortException
+            Raised if the serial port id is invalid.
         IOError
             Raised if failed to open port.
         """
-        self._port = SerialPort.getCommPort(self._devc_id) # can throw an exception if devc_id is not identified
+        self._port = SerialPort.getCommPort(self._devc_id)
         self.port.setBaudRate(self.baud_rate)
         self.port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 1000, 0)
         self.port.openPort()
 
-        if not self.is_connected(): # Throw exception if not connected
+        if not self.is_connected():
             self.close()
             raise IOError("Failed to open port {0}".format(self._devc_id))
 
@@ -90,7 +92,7 @@ class SerialDevice(object):
         """Close connection to the device.
         """
         if self.port.isOpen():
-            self.port.closePort() # Throw exception here?
+            self.port.closePort()
 
     def is_connected(self):
         """Check that status of the device connection.
@@ -103,7 +105,7 @@ class SerialDevice(object):
         return self.port.isOpen()
 
     def write(self, cmd):
-        """Write command to the device.
+    """Write command to the device.
 
         Parameters
         ----------
@@ -145,7 +147,9 @@ class SerialDevice(object):
         n = 0
         while n < num_bytes:
             num_read = self.port.readBytes(buf, 1, n)
-            if num_read < 1:
+            if num_read == -1:
+                raise IOError('Failed to read from device.')
+            if num_read == 0:
                 break
             n += 1
 
@@ -175,13 +179,30 @@ class SerialDevice(object):
         n = 0
         while n < num_bytes:
             num_read = self.port.readBytes(buf, 1, n) 
-            if num_read < 1 or buf[n] == ord(self.read_terminator[0]):
+            if num_read == -1:
+                raise IOError('Failed to read from device')
+
+            if num_read == 0:
+                break
+
+            if buf[n] == ord(self.read_terminator[0]):
                 break
             n += 1
-      
+     
         return str(bytearray(buf[:n])).rstrip()
 
     def query(self, cmd, num_bytes=1024, use_read_terminator=True):
+        """Query a response from the device.
+
+        Parameters
+        ----------
+        cmd : `str`
+            The command to write to the device, excluding write terminator.
+        num_bytes : `int`, optional
+            Maximum number of bytes to read (1024, by default).
+        use_read_terminator : `bool`, optional
+            Use the read terminator if `True`.
+        """
         self.write(cmd)
         if use_read_terminator:
             res = self.readUntilTerm(num_bytes)
