@@ -1,5 +1,7 @@
 #!/usr/bin/env ccs-script
 # To Do:
+# * (Optional) Add check for not connected to read/write/query.
+#   Refuse all commands if not connected. Raise exception?
 # * (Optional) Add ID check to initialize method
 from ccs.device import SerialDevice
 
@@ -43,7 +45,6 @@ class PowerDevice(SerialDevice):
         """Clear the device status and errors.
         """
         self.write('*CLS')
-
 
 class BK1697BDevice(PowerDevice):
     """Interface to a B&K model 1697B power supply device.
@@ -102,12 +103,12 @@ class BK1697BDevice(PowerDevice):
             voltage = self.voltage
         self.write('VOLTAGE {0:.2f}V'.format(voltage))
 
-    def get_output(self):
-        """Get the output state of the power supply.
+    def read_output(self):
+        """Read the output state of the power supply.
 
         Returns
         -------
-        state : {'ON', 'OFF'}
+        state : {'ON', 'OFF', 'NC'}
             Output state of the power supply.
 
         Raises
@@ -115,17 +116,20 @@ class BK1697BDevice(PowerDevice):
         IOError
             Raised if an unknown response string is encountered.
         """
+        if not self.is_connected():
+            return 'NC'
+
         response = self.query('OUTPUT?').rstrip('\r\n')
         if response == '0':
-            state = 'ON'
+            return 'ON'
         elif response == '1':
-            state = 'OFF'
+            return 'OFF'
         else:
             raise IOError("Unknown response string encountered: {0}".format(response))
         return state
 
-    def set_output(self, state):
-        """Set the output state of the power supply.
+    def write_output(self, state):
+        """Write the output state of the power supply.
 
         Parameters
         ----------
@@ -278,12 +282,12 @@ class BK9184Device(PowerDevice):
             current = self.max_current
         self.write('OUT:LIM:CURR {0:.3f}'.format(current))
 
-    def get_output(self):
-        """Get the output state of the power supply.
+    def read_output(self):
+        """Read the output state of the power supply.
 
         Returns
         -------
-        state : {'ON', 'OFF'}
+        state : {'ON', 'OFF', 'NC'}
             Output state of the power supply.
 
         Raises
@@ -291,13 +295,16 @@ class BK9184Device(PowerDevice):
         JVisaException
             Raised if an unknown response string is encountered.
         """
+        if not self.is_connected():
+            return 'NC'
+
         state = self.query('OUT?')
         if state not in {'ON', 'OFF'}:
             raise IOError("Unknown response string encountered: {0}".format(state))
         return state
 
-    def set_output(self, state):
-        """Set the output state of the power supply.
+    def write_output(self, state):
+        """Write the output state of the power supply.
 
         Parameters
         ----------
@@ -314,6 +321,7 @@ class BK9184Device(PowerDevice):
         else:
             raise ValueError("Not a valid value: {0}".format(state))
 
+    # Controller functions
     def write_all(self):
         self.write_voltage()
         self.write_max_voltage()
@@ -451,7 +459,7 @@ class BK9130BDevice(PowerDevice):
 
         Returns
         -------
-        state : {'ON', 'OFF'}
+        state : {'ON', 'OFF', 'NC'}
             Output state of the power supply channel.
 
         Raises
@@ -460,6 +468,9 @@ class BK9130BDevice(PowerDevice):
             Raised if ``channel`` is an invalid channel number or an unknown
             response string is encountered.
         """
+        if not self.is_connected():
+            return 'NC'
+
         self.select_channel(channel)
         response = self.query('CHAN:OUTP?')
         if response == '0':
@@ -500,14 +511,17 @@ class BK9130BDevice(PowerDevice):
 
         Returns
         -------
-        states : `list` [{'ON', 'OFF'}]
+        states : `list` [{'ON', 'OFF', 'NC'}]
             Output states of the power supply channels.
     
         Raises
         ------
-        JVisaException
+        IOError
             Raised if an unknown response string is encountered.
         """
+        if not self.is_connected():
+            return ['NC', 'NC', 'NC']
+
         responses = [res.lstrip() for res in self.query('APP:OUT?').split(',')]
         states = []
         for response in responses:

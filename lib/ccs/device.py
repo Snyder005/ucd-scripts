@@ -84,7 +84,7 @@ class SerialDevice(object):
         self.port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 1000, 0)
         self.port.openPort()
 
-        if not self.is_connected():
+        if not self.is_connected(): # only run if getCommPort does not error
             self.close()
             raise IOError("Failed to open port {0}".format(self._devc_id))
 
@@ -92,7 +92,7 @@ class SerialDevice(object):
         """Close connection to the device.
         """
         if self.port.isOpen():
-            self.port.closePort()
+            self.port.closePort() # could raise an error
 
     def is_connected(self):
         """Check that status of the device connection.

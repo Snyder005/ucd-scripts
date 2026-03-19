@@ -2,54 +2,134 @@
 # This is used to test functions before adding to Jython subsystem
 
 # Testing power off
-from ccs.power import BK9184Device, BK9130BDevice, PowerDevice
+from ccs.power import BK9184Device, BK9130BDevice, BK1697BDevice
 
 from time import sleep
 
-def hvbias_off():
+class UCDPower(object):
 
-    hvbias_device = BK9184Device('ttyUSB2', 50.0, 60.0, 0.001)
+    def __init__(self):
 
-    hvbias_device.write_voltage(0.0)
-    hvbias_device.write_output('OFF')
+        self.hvbias_device = BK9184Device('/dev/serial/by-path/pci-0000:00:14.0-usb-0:12.1.1:1.0-port0',
+                                          50.0, 60.0, 0.001)
+        self.power_devices = (BK9130BDevice('/dev/serial/by-path/pci-0000:00:14.0-usb-0:12.3:1.0-port0',
+                                            [8.0, 12.0, 5.0]),
+                              BK9130BDevice('/dev/serial/by-path/pci-0000:00:14.0-usb-0:12.2:1.0-port0',
+                                            [15.0, 15.0, 5.0]),
+                              BK1697Device('/dev/serial/by-path/pci-0000:00:14.0-usb-0:12.1.4:1.0', 38.0))
+    def power_on(self):
+        try:
+            if not self.is_power_on():
+                # Turn off voltages
+                self.power_devices[0].write_voltages([0.0, 0.0, 0.0])
+                self.power_devices[1].write_voltages([0.0, 0.0, 0.0])
 
-def command():
-    # Before testing verify correct bk9130b assignments
-    bk1697 = PowerDevice('BK 1697 PS', 'ttyUSB5', baud_rate=9600, 
-                         write_terminator='\r', read_terminator='\r')
-    bk9130b1 = BK9130BDevice('ttyUSB3', [8.0, 12.0, 5.0])
-    bk9130b2 = BK9130BDevice('ttyUSB1', [15.0, 15.0, 5.0])
+                self.power_devices[0].write_output(['ON', 'ON', 'ON'])
+                self.power_devices[0].write_output(['ON', 'ON', 'ON'])
+                self.power_devices[2].write_output('OFF')
 
-    print('BK9130B_1: ', bk9130b1.read_voltages())
-    print('BK9130B_2: ', bk9130b2.read_voltages())
+                # Turn on OTM, Digital, and Heater voltages
+                self.power_devices[0].write_voltages([0.0, 12.0, 5.0])
+                self.power_devices[1].write_voltages([0.0, 0.0, 5.0])
+                sleep(20)
 
-    return
-    # check if reb voltages are off, return
-    # else
+                # Turn on CLK High, CLK Low, and Analog voltages
+                self.power_devices[0].write_voltages()
+                self.power_devices[1].write_voltages()    
+                sleep(20)
 
-    # Turn back bias off (does this matter if hvbias is already off?)
-    hvbias_off()
-    
-    # Set OD to 0V
-    bk1697.query('SOUT001')
-    # wait a delay
-    sleep(20)
+                # Turn on OD
+                self.power_devices[2].write_voltage()
+                self.power_devices[2].write_output('ON')
+                sleep(2)
+        finally:
+            self.publish_state()
 
-    # Set clk high, clk low, and analog voltages to 0.
-    bk9130b2.write_voltages([0.0, 0.0, None]) # Set chan 1/2 to 0V
-    bk9130b1.write_voltages([0.0, None, None]) # Set chan 1 to 0V
-    sleep(20)
+    def power_off(self):
+        self.hvbias_off() # raises error if fails
 
-    # Set OTM, digital, and heater, voltages to 0.
-    bk9130b2.write_voltages([0.0, 0.0, 0.0])
-    bk9130b1.write_voltages([0.0, 0.0, 0.0])
+        try:
+            # Set OD to 0V, by turning off output since minimum is 1 V
+            self.power_devices[2].write_output('OFF')
+            sleep(20)
 
-    bk9130b2.write_outputs(['OFF', 'OFF', 'OFF'])
-    bk9130b1.write_outputs(['OFF', 'OFF', 'OFF'])
-    sleep(4)
+            # Set CLK High, CLK Low, and analog voltages to 0.
+            self.power_devices[0].write_voltages([0.0, 12.0, 5.0]) # Set chan 1 to 0V
+            self.power_devices[1].write_voltages([0.0, 0.0, 5.0])
+            sleep(20)
 
-    # Check if reb voltages are off
-    # if not off: Return
+            # Set OTM, Digital and Heater voltages to 0.
+            self.power_devices[0].write_voltages([0.0, 0.0, 0.0])
+            self.power_devices[1].write_voltages([0.0, 0.0, 0.0])
+
+            # Turn off outputs
+            self.power_devices[0].write_output(['OFF', 'OFF', 'OFF'])
+            self.power_devices[1].write_output(['OFF', 'OFF', 'OFF'])
+            sleep(4)
+        finally:
+            self.publish_state()
+
+    def hvbias_on(self):
+        if not self.is_power_on():
+            return
+        try: # power on hvbias
+            self.hvbias_device.write_all()
+            self.hvbias_device.write_output('ON')
+        finally:
+            self.publish_state()
+
+    def hvbias_off(self):
+        try:
+            self.hvbias_device.write_output('OFF')
+        finally:
+            self.publish_state()
+
+    def is_hvbias_on(self):
+        return self.hvbias_device.read_output() == 'ON'
+
+    def set_hvbias(self, voltage):
+        self.hvbias_device.voltage = voltage # change operating voltage
+        try:
+            if self.is_hvbias_on():
+                self.hvbias_device.write_voltage()
+        finally:
+            self.publish_state()
+
+    def otm_on(self):
+        pass
+
+    def otm_off(self):
+        pass
+
+    def publish_state():
+        """Read state of power supplies and publish."""
+        
+        vnames = ['Analog', 'Heater', 'Digital', 'CLK Low', 'CLK High', 'OTM', 'OD', 'BSS']
+        voltages = self.power_devices[0].read_voltages() + \
+                   self.power_devices[1].read_voltages() + \
+                   [self.power_devices[2].read_voltage()] + ]
+                   [self.hvbias_device.read_voltage()]
+        
+        for i, vname in enumerate(vnames):
+            print("{0} = {1:.1f}".format(vname, voltages[i]))
+
+    def is_power_on(): # This will fail for 9130B devices at the moment.
+
+        is_on = True
+
+        states = self.power_devices[0].read_outputs() + \
+                self.power_devices[1].read_outputs() + \
+                [self.power_devices[2].read_output()]
+
+        for state in states:
+            if state != 'ON':
+                is_on = False
+                break
+
+        return is_on                 
+
+def main():
+    UCDPower()
 
 if __name__ == '__main__':
-    hvbias_off()
+    main()
