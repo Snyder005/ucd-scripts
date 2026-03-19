@@ -1,6 +1,6 @@
 #!/usr/bin/env ccs-script
 from com.fazecast.jSerialComm import SerialPort
-
+from ccs.data import DeviceException
 import jarray
 
 # Add error handling
