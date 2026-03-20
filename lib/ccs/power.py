@@ -5,7 +5,7 @@
 # * (Optional) Add ID check to initialize method
 from ccs.device import SerialDevice
 from ccs.data import PowerException
-from ccs.data import DriverException
+from ccs.data import DeviceException
 
 __all__ = ['BK9130BDevice', 'BK9184Device', 'BK1697BDevice']
 
@@ -59,7 +59,7 @@ class PowerDevice(SerialDevice):
     def _write(self):
         try:
             super(PowerDevice, self).write(cmd)
-        except DeviceException
+        except DeviceException:
             raise PowerException
 
 class BK1697BDevice(PowerDevice):

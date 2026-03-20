@@ -105,7 +105,7 @@ class SerialDevice(object):
         return self.port.isOpen()
 
     def write(self, cmd):
-    """Write command to the device.
+        """Write command to the device.
 
         Parameters
         ----------

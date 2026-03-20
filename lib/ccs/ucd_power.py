@@ -15,7 +15,7 @@ class UCDPower(object):
                                             [8.0, 12.0, 5.0]),
                               BK9130BDevice('/dev/serial/by-path/pci-0000:00:14.0-usb-0:12.2:1.0-port0',
                                             [15.0, 15.0, 5.0]),
-                              BK1697Device('/dev/serial/by-path/pci-0000:00:14.0-usb-0:12.1.4:1.0', 38.0))
+                              BK1697BDevice('/dev/serial/by-path/pci-0000:00:14.0-usb-0:12.1.4:1.0', 38.0))
     def power_on(self):
         try:
             if not self.is_power_on():
@@ -23,8 +23,8 @@ class UCDPower(object):
                 self.power_devices[0].write_voltages([0.0, 0.0, 0.0])
                 self.power_devices[1].write_voltages([0.0, 0.0, 0.0])
 
-                self.power_devices[0].write_output(['ON', 'ON', 'ON'])
-                self.power_devices[0].write_output(['ON', 'ON', 'ON'])
+                self.power_devices[0].write_outputs(['ON', 'ON', 'ON'])
+                self.power_devices[1].write_outputs(['ON', 'ON', 'ON'])
                 self.power_devices[2].write_output('OFF')
 
                 # Turn on OTM, Digital, and Heater voltages
@@ -62,8 +62,8 @@ class UCDPower(object):
             self.power_devices[1].write_voltages([0.0, 0.0, 0.0])
 
             # Turn off outputs
-            self.power_devices[0].write_output(['OFF', 'OFF', 'OFF'])
-            self.power_devices[1].write_output(['OFF', 'OFF', 'OFF'])
+            self.power_devices[0].write_outputs(['OFF', 'OFF', 'OFF'])
+            self.power_devices[1].write_outputs(['OFF', 'OFF', 'OFF'])
             sleep(4)
         finally:
             self.publish_state()
@@ -94,19 +94,19 @@ class UCDPower(object):
         finally:
             self.publish_state()
 
-    def publish_state():
+    def publish_state(self):
         """Read state of power supplies and publish."""
         
         vnames = ['Analog', 'Heater', 'Digital', 'CLK Low', 'CLK High', 'OTM', 'OD', 'BSS']
         voltages = self.power_devices[0].read_voltages() + \
                    self.power_devices[1].read_voltages() + \
-                   [self.power_devices[2].read_voltage()] + ]
+                   [self.power_devices[2].read_voltage()] + \
                    [self.hvbias_device.read_voltage()]
         
         for i, vname in enumerate(vnames):
             print("{0} = {1:.1f}".format(vname, voltages[i]))
 
-    def is_power_on():
+    def is_power_on(self):
 
         is_on = True
 
