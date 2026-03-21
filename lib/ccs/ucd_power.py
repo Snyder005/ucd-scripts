@@ -86,11 +86,9 @@ class UCDPower(object):
     def is_hvbias_on(self):
         return self.hvbias_device.read_output() == 'ON'
 
-    def set_hvbias(self, voltage):
-        self.hvbias_device.voltage = voltage # change operating voltage
+    def set_hvbias(self, voltage): # Option to set opVoltage and then write if on.
         try:
-            if self.is_hvbias_on():
-                self.hvbias_device.write_voltage()
+            self.hvbias_device.write_voltage(voltage)
         finally:
             self.publish_state()
 

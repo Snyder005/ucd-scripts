@@ -14,7 +14,7 @@ class SciinTechPS500Device(SerialDevice):
     def __init__(self, devc_id):
         super(SciinTechPS500Device, self).__init__('Sci-in Tech PS-500 Shutter', devc_id, baud_rate=9600,
                                                    write_terminator='\r\n', read_terminator='\r\n')
-        if not self.is_shutter_closed():
+        if not self.is_closed():
             self.close_shutter()
 
     def is_connected(self):
