@@ -48,11 +48,6 @@ class PowerDevice(SerialDevice):
         idn = self.query('*IDN?')
         return idn
 
-    def clear_status(self):
-        """Clear the device status and errors.
-        """
-        self.write('*CLS')
-
     # Override
     def _query(self, cmd, num_bytes=1024):
         try:
@@ -74,20 +69,11 @@ class BK1697BDevice(PowerDevice):
     ----------
     devc_id : `str`
         Device resource name.
-    voltage : `float`
-        Default operating voltage of the power supply.
     """
 
-    def __init__(self, devc_id, voltage):
-        self._voltage = voltage
+    def __init__(self, devc_id):
         super(BK1697BDevice, self).__init__('B&K 1697B PS', devc_id, baud_rate=9600, 
                                             write_terminator='\n', read_terminator='\r\n')
-
-    @property
-    def voltage(self):
-        """Default operating voltage (`float`).
-        """
-        return self._voltage
 
     def get_voltage(self, channel=None):
         """Get the setpoint voltage of the power supply.
@@ -111,18 +97,26 @@ class BK1697BDevice(PowerDevice):
         voltage = float(self.query('MEASURE:VOLTAGE?').rstrip('V'))
         return voltage
 
-    def write_voltage(self, voltage=None, channel=None): # set_voltage?
+    def write_voltage(self, voltage, channel=None):
         """Write the setpoint voltage to the power supply.
 
         Parameters
         ----------
         voltage : `float`, optional
-            Setpoint voltage of the power supply, the default operating 
-            voltage, if none is provided.
+            Setpoint voltage of the power supply.
         """
-        if voltage is None:
-            voltage = self.voltage
         self.write('VOLTAGE {0:.2f}V'.format(voltage))
+
+    def get_current(self, channel=None):
+        current = float(self.query('CURRENT?').rstrip('A'))
+        return current
+
+    def read_current(self, channel=None):
+        current = float(self.query('MEASURE:CURRENT?').rstrip('A'))
+        return current
+
+    def write_current(self, current, channel=None):
+        self.write('CURRENT {0:.2f}A'.format(current))
 
     def read_output(self, channel=None):
         """Read the output state of the power supply.
@@ -176,38 +170,17 @@ class BK9184Device(PowerDevice):
     ----------
     devc_id : `str`
         Device resource name.
-    voltage : `float`
-        Default operating voltage of the power supply.
     max_voltage : `float`
         Default maximum voltage of the power supply.
     max_current : `float`
         Default maximum current of the power supply.
     """
+    MAX_VOLTAGE = 60.0
+    MAX_CURRENT = 0.001
 
-    def __init__(self, devc_id, voltage, max_voltage, max_current):
-        self._voltage = voltage
-        self._max_voltage = max_voltage
-        self._max_current = max_current
+    def __init__(self, devc_id):
         super(BK9184Device, self).__init__('B&K 9184 PS', devc_id, baud_rate=57600, 
                                            write_terminator='\r\n', read_terminator='\r\n')
-
-    @property
-    def voltage(self):
-        """Defaut operating voltage (`float`).
-        """
-        return self._voltage
-
-    @property
-    def max_voltage(self):
-        """Default maximum voltage (`float`).
-        """
-        return self._max_voltage
-
-    @property
-    def max_current(self):
-        """Default maximum current (`float`).
-        """
-        return self._max_current
    
     def get_voltage(self, channel=None):
         """Get the setpoint voltage of the power supply.
@@ -231,7 +204,7 @@ class BK9184Device(PowerDevice):
         voltage = float(self.query('MEAS:VOLT?'))
         return voltage
 
-    def write_voltage(self, voltage=None, channel=None):
+    def write_voltage(self, voltage, channel=None):
         """Write the setpoint voltage to the power supply.
 
         Parameters
@@ -240,9 +213,13 @@ class BK9184Device(PowerDevice):
             Setpoint voltage of the power supply (the default operating 
             voltage, by default)
         """
-        if voltage is None:
-            voltage = self.voltage
+        if voltage > self.MAX_VOLTAGE: # check to protect CCD
+            raise DeviceException
         self.write('VOLT {0:.3f}'.format(voltage))
+
+    def get_current(self, channel=None):
+        current = float(self.query('CURR?'))
+        return current
 
     def read_current(self, channel=None):
         """Read the output current of the supply.
@@ -255,53 +232,8 @@ class BK9184Device(PowerDevice):
         current = float(self.query('MEAS:CURR?'))
         return current
 
-    def read_max_voltage(self):
-        """Read the maximum operating voltage of the power supply.
-
-        Returns
-        -------
-        max_voltage : `float`
-            Maximum operating voltage of the power supply.
-        """
-        max_voltage = float(self.query('OUT:LIM:VOLT?'))
-        return max_voltage
-
-    def write_max_voltage(self, voltage=None):
-        """Write the maximum setpoint voltage to the power supply.
-
-        Parameters
-        ----------
-        voltage : `float`, optional
-            Maximum setpoint voltage of the power supply (the default maximum
-            voltage, by default).
-        """
-        if voltage is None:
-            voltage = self.max_voltage
-        self.write('OUT:LIM:VOLT {0:.3f}'.format(voltage))
-
-    def read_max_current(self):
-        """Read the maximum operating current of the power supply.
-
-        Returns
-        -------
-        max_current : `float`
-            Maximum operating current of the power supply.
-        """
-        max_current = float(self.query('OUT:LIM:CURR?'))
-        return max_current
-
-    def write_max_current(self, current=None):
-        """Write the maximum setpoint current to the power supply.
-
-        Parameters
-        ----------
-        current : `float`, optional
-            Maximum setpoint current of the power supply (the default maximum
-            current, by default).
-        """
-        if current is None:
-            current = self.max_current
-        self.write('OUT:LIM:CURR {0:.3f}'.format(current))
+    def write_current(self, current, channel=None):
+        self.write('CURR {0:.3f}'.format(current))
 
     def read_output(self, channel=None):
         """Read the output state of the power supply.
@@ -342,12 +274,6 @@ class BK9184Device(PowerDevice):
         else:
             raise ValueError("Not a valid value: {0}".format(state))
 
-    # Controller functions
-    def write_all(self):
-        self.write_voltage()
-        self.write_max_voltage()
-        self.write_max_current()
-
 class BK9130BDevice(PowerDevice):
     """Interface to a B&K model 9130B power supply device.
 
@@ -355,20 +281,11 @@ class BK9130BDevice(PowerDevice):
     ----------
     devc_id : `str`
         Device resource name.
-    voltages : `list` [`float`]
-        Default operating voltages of the power supply channels.
     """
     
-    def __init__(self, devc_id, voltages):
-        self._voltages = voltages # check that three provided
+    def __init__(self, devc_id):
         super(BK9130BDevice, self).__init__('B&K 9130B PS', devc_id, baud_rate=4800, 
                                             write_terminator='\n', read_terminator='\n')
-
-    @property
-    def voltages(self):
-        """Default operating voltages (`list` [`float`]).
-        """
-        return self._voltages
 
     def get_voltage(self, channel):
         """Get setpoint voltage of a power supply channel.
@@ -391,7 +308,18 @@ class BK9130BDevice(PowerDevice):
         self.select_channel(channel)
         voltage = float(self.query('VOLT?'))
         return voltage
-    
+
+    def get_voltages(self):
+        """Get the setpoint voltages of the power supply channels.
+
+        Returns
+        -------
+        voltages : `list` [`float`]
+            Setpoint voltages of the power supply channels.
+        """
+        voltages = [float(res) for res in self.query('APP:VOLT?').split(',')]
+        return voltages
+   
     def read_voltage(self, channel):
         """Read the output voltage of a power supply channel.
 
@@ -414,7 +342,18 @@ class BK9130BDevice(PowerDevice):
         voltage = float(self.query('MEAS:VOLT?'))
         return voltage
 
-    def write_voltage(self, channel, voltage=None):
+    def read_voltages(self):
+        """Read the output voltages of the power supply channels.
+
+        Returns
+        -------
+        voltages : `list` [`float`]
+            Output voltages of the power supply channels.
+        """
+        voltages = [float(res) for res in self.query('MEAS:VOLT:ALL?').split(',')]
+        return voltages
+
+    def write_voltage(self, voltage, channel):
         """Write the setpoint voltage to a power supply channel.
 
         Parameters
@@ -431,33 +370,9 @@ class BK9130BDevice(PowerDevice):
             Raised if ``channel`` is an invalid channel number.
         """
         self.select_channel(channel)
-        if voltage is None:
-            voltage = self.voltages[chan-1]
-        self.write('VOLT {0:.1f}'.format(voltage))
-        
-    def get_voltages(self):
-        """Get the setpoint voltages of the power supply channels.
+        self.write('VOLT {0:.3f}'.format(voltage))
 
-        Returns
-        -------
-        voltages : `list` [`float`]
-            Setpoint voltages of the power supply channels.
-        """
-        voltages = [float(res) for res in self.query('APP:VOLT?').split(',')]
-        return voltages
-
-    def read_voltages(self):
-        """Read the output voltages of the power supply channels.
-
-        Returns
-        -------
-        voltages : `list` [`float`]
-            Output voltages of the power supply channels.
-        """
-        voltages = [float(res) for res in self.query('MEAS:VOLT:ALL?').split(',')]
-        return voltages
-
-    def write_voltages(self, voltages=None):
+    def write_voltages(self, voltages):
         """Write the setpoint voltages to the power supply channels.
 
         Parameters
@@ -466,9 +381,32 @@ class BK9130BDevice(PowerDevice):
             Setpoint voltages of the power supply channels (the default 
             operating voltages, by default).
         """
-        if voltages is None:
-            voltages = self.voltages
-        self.write('APP:VOLT {0:.1f},{1:.1f},{2:.1f}'.format(*voltages))
+        self.write('APP:VOLT {0:.3f},{1:.3f},{2:.3f}'.format(*voltages))
+       
+    def get_current(self, channel):
+        self.select_channel(channel)
+        current = float(self.query('CURR?'))
+        return current
+
+    def get_currents(self):
+        currents = [float(res) for res in self.query('APP:CURR?').split(',')]
+        return currents
+
+    def read_current(self, channel):
+        self.select_channel(channel)
+        current = float(self.query('MEAS:CURR?'))
+        return current
+
+    def read_currents(self):
+        currents = [float(res) for res in self.query('MEAS:CURR:ALL?').split(',')]
+        return currents
+
+    def write_current(self, current, channel):
+        self.select_channel(channel)
+        self.write('CURR {0:.3f}'.format(current)
+
+    def write_currents(self, currents):
+        self.write('APP:CURR {0:.3f},{1:.3f},{2:.3f}'.format(*currents))
 
     def read_output(self, channel):
         """Read the output state of the power supply channel.
@@ -502,30 +440,6 @@ class BK9130BDevice(PowerDevice):
             raise PowerException("Unknown response string encountered: {0}".format(response))
         return state
 
-    def write_output(self, channel, state):
-        """Write the output state of the power supply channel.
-
-        Parameters
-        ----------
-        channel : {1, 2, 3}
-            Power supply channel number.
-        state : {'ON', 'OFF'}
-            Output state of the power supply channel."
-
-        Raises
-        ------
-        PowerException
-            Raised if ``channel`` is an invalid channel number or if ``state``
-            is an invalid value.
-        """
-        self.select_channel(channel)
-        if state == 'ON':
-            self.write('CHAN:OUTP 1')
-        elif state == 'OFF':
-            self.write('CHAN:OUTP 0')
-        else:
-            raise PowerException("Not a valid value: {0}".format(state))
-
     def read_outputs(self):
         """Read output states of the power supply channels.
 
@@ -552,6 +466,30 @@ class BK9130BDevice(PowerDevice):
             else:
                 raise PowerException("Unknown response string encountered: {0}".format(response))
         return states
+
+    def write_output(self, state, channel):
+        """Write the output state of the power supply channel.
+
+        Parameters
+        ----------
+        channel : {1, 2, 3}
+            Power supply channel number.
+        state : {'ON', 'OFF'}
+            Output state of the power supply channel."
+
+        Raises
+        ------
+        PowerException
+            Raised if ``channel`` is an invalid channel number or if ``state``
+            is an invalid value.
+        """
+        self.select_channel(channel)
+        if state == 'ON':
+            self.write('CHAN:OUTP 1')
+        elif state == 'OFF':
+            self.write('CHAN:OUTP 0')
+        else:
+            raise PowerException("Not a valid value: {0}".format(state))
 
     def write_outputs(self, states):
         """Write output states to the power supply channels.
