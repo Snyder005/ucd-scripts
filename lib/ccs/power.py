@@ -39,8 +39,13 @@ class PowerDevice(SerialDevice):
         -------
         idn : `str`
             Identification string of the power supply.
+
+        Raises
+        ------
+        DeviceException
+            Raised if unable to read identification string.
         """
-        idn = self.query('*IDN?') # Throws any exceptions from read/write
+        idn = self.query('*IDN?')
         return idn
 
     def clear_status(self):
@@ -49,7 +54,7 @@ class PowerDevice(SerialDevice):
         self.write('*CLS')
 
     # Override
-    def _query(self, cmd, num_bytes=1024, use_read_terminator=True):
+    def _query(self, cmd, num_bytes=1024):
         try:
             super(PowerDevice, self).query(cmd, num_bytes=num_bytes, use_read_terminator=use_read_terminator)
         except DeviceException:
@@ -84,7 +89,7 @@ class BK1697BDevice(PowerDevice):
         """
         return self._voltage
 
-    def get_voltage(self):
+    def get_voltage(self, channel=None):
         """Get the setpoint voltage of the power supply.
 
         Returns
@@ -95,7 +100,7 @@ class BK1697BDevice(PowerDevice):
         voltage = float(self.query('VOLTAGE?').rstrip('V'))
         return voltage
 
-    def read_voltage(self):
+    def read_voltage(self, channel=None):
         """Read the output voltage of the power supply.
 
         Returns
@@ -106,7 +111,7 @@ class BK1697BDevice(PowerDevice):
         voltage = float(self.query('MEASURE:VOLTAGE?').rstrip('V'))
         return voltage
 
-    def write_voltage(self, voltage=None): # set_voltage?
+    def write_voltage(self, voltage=None, channel=None): # set_voltage?
         """Write the setpoint voltage to the power supply.
 
         Parameters
@@ -119,7 +124,7 @@ class BK1697BDevice(PowerDevice):
             voltage = self.voltage
         self.write('VOLTAGE {0:.2f}V'.format(voltage))
 
-    def read_output(self):
+    def read_output(self, channel=None):
         """Read the output state of the power supply.
 
         Returns
@@ -144,7 +149,7 @@ class BK1697BDevice(PowerDevice):
             raise PowerException("Unknown response string encountered: {0}".format(response))
         return state
 
-    def write_output(self, state):
+    def write_output(self, state, channel=None):
         """Write the output state of the power supply.
 
         Parameters
@@ -204,7 +209,7 @@ class BK9184Device(PowerDevice):
         """
         return self._max_current
    
-    def get_voltage(self):
+    def get_voltage(self, channel=None):
         """Get the setpoint voltage of the power supply.
 
         Returns
@@ -215,7 +220,7 @@ class BK9184Device(PowerDevice):
         voltage = float(self.query('VOLT?'))
         return voltage
 
-    def read_voltage(self):
+    def read_voltage(self, channel=None):
         """Read the output voltage of the power supply.
         
         Returns
@@ -226,7 +231,7 @@ class BK9184Device(PowerDevice):
         voltage = float(self.query('MEAS:VOLT?'))
         return voltage
 
-    def write_voltage(self, voltage=None):
+    def write_voltage(self, voltage=None, channel=None):
         """Write the setpoint voltage to the power supply.
 
         Parameters
@@ -239,7 +244,7 @@ class BK9184Device(PowerDevice):
             voltage = self.voltage
         self.write('VOLT {0:.3f}'.format(voltage))
 
-    def read_current(self):
+    def read_current(self, channel=None):
         """Read the output current of the supply.
 
         Returns
@@ -298,7 +303,7 @@ class BK9184Device(PowerDevice):
             current = self.max_current
         self.write('OUT:LIM:CURR {0:.3f}'.format(current))
 
-    def read_output(self):
+    def read_output(self, channel=None):
         """Read the output state of the power supply.
 
         Returns
@@ -319,7 +324,7 @@ class BK9184Device(PowerDevice):
             raise PowerException("Unknown response string encountered: {0}".format(state))
         return state
 
-    def write_output(self, state):
+    def write_output(self, state, channel=None):
         """Write the output state of the power supply.
 
         Parameters

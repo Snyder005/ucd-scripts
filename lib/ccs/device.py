@@ -3,8 +3,6 @@ from com.fazecast.jSerialComm import SerialPort
 from ccs.data import DeviceException
 import jarray
 
-# Add error handling
-# * What errors raised? readBytes
 # Add support for two character read_terminator.
 # * Currently only supports single character read terminator
 
@@ -74,9 +72,7 @@ class SerialDevice(object):
 
         Raises
         ------
-        SerialPortInvalidPortException
-            Raised if the serial port id is invalid.
-        IOError
+        DeviceException
             Raised if failed to open port.
         """
         self._port = SerialPort.getCommPort(self._devc_id)
@@ -84,12 +80,12 @@ class SerialDevice(object):
         self.port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 1000, 0)
         self.port.openPort()
 
-        if not self.is_connected(): # only run if getCommPort does not error
+        if not self.is_connected():
             self.close()
-            raise IOError("Failed to open port {0}".format(self._devc_id))
+            raise DeviceException("Failed to open port {0}".format(self._devc_id))
 
     def close(self):
-        """Close connection to the device.
+        """Close serial port connection to the device.
         """
         if self.port.isOpen():
             self.port.closePort() # could raise an error
@@ -114,7 +110,7 @@ class SerialDevice(object):
 
         Raises
         ------
-        IOError
+        DeviceException
             Raised if write operation failed.
         """
         if self.write_terminator is not None:
@@ -122,40 +118,9 @@ class SerialDevice(object):
         num_written = self.port.writeBytes(cmd, len(cmd))
 
         if num_written < 0: # Throw exception if write fails
-            raise IOError("Failed to write command: {0}".format(cmd))
+            raise DeviceException("Failed to write command: {0}".format(cmd))
 
     def read(self, num_bytes=1024):
-        """Read response from the device.
-
-        Bytes are read one-by-one to a buffer until no bytes are returned by 
-        the device or the maximum number of bytes is read.
-
-        If no bytes are returned by the device, the read operation will
-        timeout after 1000 ms.
-
-        Parameters
-        ----------
-        num_bytes : `int`, optional
-            Maximum number of bytes to read (1024, by default).
-
-        Returns
-        -------
-        response : `str`
-            Response from the device, including read terminator.
-        """
-        buf = jarray.zeros(num_bytes, 'b')
-        n = 0
-        while n < num_bytes:
-            num_read = self.port.readBytes(buf, 1, n)
-            if num_read == -1:
-                raise IOError('Failed to read from device.')
-            if num_read == 0:
-                break
-            n += 1
-
-        return str(bytearray(buf[:n]))
-
-    def readUntilTerm(self, num_bytes=1024):
         """Read response from the device.
 
         Bytes are read one-by-one to a buffer until either the read terminator
@@ -174,13 +139,18 @@ class SerialDevice(object):
         -------
         response : `str`
             Response from the device, excluding read terminator.
+        
+        Raises
+        ------
+        DeviceException
+            Raised if read operation failed.
         """
         buf = jarray.zeros(num_bytes, 'b')
         n = 0
         while n < num_bytes:
             num_read = self.port.readBytes(buf, 1, n) 
             if num_read == -1:
-                raise IOError('Failed to read from device')
+                raise DeviceException('Failed to read from device.')
 
             if num_read == 0:
                 break
@@ -191,7 +161,7 @@ class SerialDevice(object):
      
         return str(bytearray(buf[:n])).rstrip()
 
-    def query(self, cmd, num_bytes=1024, use_read_terminator=True):
+    def query(self, cmd, num_bytes=1024):
         """Query a response from the device.
 
         Parameters
@@ -202,11 +172,18 @@ class SerialDevice(object):
             Maximum number of bytes to read (1024, by default).
         use_read_terminator : `bool`, optional
             Use the read terminator if `True`.
+
+        Returns
+        -------
+        response : `str`
+            Response from the device, excluding read terminator.
+
+        Raises
+        ------
+        DeviceException
+            Raised if read or write operation failed during query.
         """
         self.write(cmd)
-        if use_read_terminator:
-            res = self.readUntilTerm(num_bytes)
-        else:
-            res = self.read(num_bytes)
+        res = self.read(num_bytes)
 
         return res
