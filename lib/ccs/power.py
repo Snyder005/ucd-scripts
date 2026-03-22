@@ -403,7 +403,7 @@ class BK9130BDevice(PowerDevice):
 
     def write_current(self, current, channel):
         self.select_channel(channel)
-        self.write('CURR {0:.3f}'.format(current)
+        self.write('CURR {0:.3f}'.format(current))
 
     def write_currents(self, currents):
         self.write('APP:CURR {0:.3f},{1:.3f},{2:.3f}'.format(*currents))
