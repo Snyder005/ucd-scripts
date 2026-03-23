@@ -71,6 +71,9 @@ class BK1697BDevice(PowerDevice):
         Device resource name.
     """
 
+    MIN_CHAN = 0
+    MAX_CHAN = 0
+
     def __init__(self, devc_id):
         super(BK1697BDevice, self).__init__('B&K 1697B PS', devc_id, baud_rate=9600, 
                                             write_terminator='\n', read_terminator='\r\n')
@@ -176,7 +179,9 @@ class BK9184Device(PowerDevice):
         Default maximum current of the power supply.
     """
     MAX_VOLTAGE = 60.0
-    MAX_CURRENT = 0.001
+
+    MIN_CHAN = 0
+    MAX_CHAN = 0
 
     def __init__(self, devc_id):
         super(BK9184Device, self).__init__('B&K 9184 PS', devc_id, baud_rate=57600, 
@@ -214,7 +219,7 @@ class BK9184Device(PowerDevice):
             voltage, by default)
         """
         if voltage > self.MAX_VOLTAGE: # check to protect CCD
-            raise DeviceException
+            raise PowerException
         self.write('VOLT {0:.3f}'.format(voltage))
 
     def get_current(self, channel=None):
@@ -272,7 +277,7 @@ class BK9184Device(PowerDevice):
         if state in ['ON', 'OFF']:
             self.write('OUT {0}'.format(state))
         else:
-            raise ValueError("Not a valid value: {0}".format(state))
+            raise PowerException("Not a valid value: {0}".format(state))
 
 class BK9130BDevice(PowerDevice):
     """Interface to a B&K model 9130B power supply device.
@@ -283,6 +288,9 @@ class BK9130BDevice(PowerDevice):
         Device resource name.
     """
     
+    MIN_CHAN = 1
+    MAX_CHAN = 3
+
     def __init__(self, devc_id):
         super(BK9130BDevice, self).__init__('B&K 9130B PS', devc_id, baud_rate=4800, 
                                             write_terminator='\n', read_terminator='\n')
@@ -531,14 +539,3 @@ class BK9130BDevice(PowerDevice):
         if channel not in [1, 2, 3]:
             raise PowerException("Invalid channel number: {0}".format(channel))
         self.write('INST:NSEL {0}'.format(channel))
-
-    def read_select(self):
-        """Read the power supply channel number.
-        
-        Returns
-        -------
-        channel : {1, 2, 3}
-            Power supply channel number.
-        """
-        channel = int(self.query('INST:NSEL?'))
-        return channel
