@@ -313,7 +313,7 @@ class BK9130BDevice(PowerDevice):
         PowerException
             Raised if ``channel`` is an invalid channel number.
         """
-        self.select_channel(channel)
+        self.write_select(channel)
         voltage = float(self.query('VOLT?'))
         return voltage
 
@@ -346,7 +346,7 @@ class BK9130BDevice(PowerDevice):
         PowerException
             Raised if ``channel`` is an invalid channel number.
         """
-        self.select_channel(channel)
+        self.write_select(channel)
         voltage = float(self.query('MEAS:VOLT?'))
         return voltage
 
@@ -377,7 +377,7 @@ class BK9130BDevice(PowerDevice):
         PowerException
             Raised if ``channel`` is an invalid channel number.
         """
-        self.select_channel(channel)
+        self.write_select(channel)
         self.write('VOLT {0:.3f}'.format(voltage))
 
     def write_voltages(self, voltages):
@@ -392,7 +392,7 @@ class BK9130BDevice(PowerDevice):
         self.write('APP:VOLT {0:.3f},{1:.3f},{2:.3f}'.format(*voltages))
        
     def get_current(self, channel):
-        self.select_channel(channel)
+        self.write_select(channel)
         current = float(self.query('CURR?'))
         return current
 
@@ -401,7 +401,7 @@ class BK9130BDevice(PowerDevice):
         return currents
 
     def read_current(self, channel):
-        self.select_channel(channel)
+        self.write_select(channel)
         current = float(self.query('MEAS:CURR?'))
         return current
 
@@ -410,7 +410,7 @@ class BK9130BDevice(PowerDevice):
         return currents
 
     def write_current(self, current, channel):
-        self.select_channel(channel)
+        self.write_select(channel)
         self.write('CURR {0:.3f}'.format(current))
 
     def write_currents(self, currents):
@@ -438,7 +438,7 @@ class BK9130BDevice(PowerDevice):
         if not self.is_connected():
             return 'NC'
 
-        self.select_channel(channel)
+        self.write_select(channel)
         response = self.query('CHAN:OUTP?')
         if response == '0':
             state = 'OFF'
@@ -491,7 +491,7 @@ class BK9130BDevice(PowerDevice):
             Raised if ``channel`` is an invalid channel number or if ``state``
             is an invalid value.
         """
-        self.select_channel(channel)
+        self.write_select(channel)
         if state == 'ON':
             self.write('CHAN:OUTP 1')
         elif state == 'OFF':

@@ -5,7 +5,7 @@ class PowerControl(object):
     def __init__(self, name, devc, hw_chan, op_voltage, op_current=None):
         self.name = name
         self.devc = devc
-        if (hw_chan < self.devc.MIN_CHAN) or (hw_chan > self.devc.MAX_CHAN)
+        if (hw_chan < self.devc.MIN_CHAN) or (hw_chan > self.devc.MAX_CHAN):
             raise PowerException('HW channel number is invalid: {0}'.format(hw_chan))
         else:
             self.hw_chan = hw_chan
