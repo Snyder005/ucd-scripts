@@ -10,7 +10,7 @@ from ccs.device import SerialDevice
 from ccs.data import PowerException
 from ccs.data import DeviceException
 
-class UCDPower(object):
+class UCDPowerMain(object):
 
     def __init__(self):
 

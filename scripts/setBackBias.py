@@ -8,46 +8,46 @@ import argparse
 from datetime import datetime
 
 from org.lsst.ccs.scripting import CCS
+from ccs.power import UCDPowerMain
 
-import PowerSupplyConfig
-import BackBiasCheck
+def set_backbias_on(raftname):
+    # To power on CCD should be on.
 
-def set_backbias_on(raftname, vbb=PowerSupplyConfig.VN70):
-
-    print vbb
+    # Connect control systems
     fp = CCS.attachSubsystem("ucd-fp")
+    ucd_power = UCDPowerMain()
 
     ## Check CCD state
     ccdState = fp.sendSynchCommand("{0}/Reb0 getCCDsPowerState".format(raftname))
     if ccdState == 'OFF':
         raise RuntimeError("CCD is not powered on!")
 
-    PowerSupplyConfig.power_bss_on(vbb=vbb)
+    # Power on HVBias power supply
+    ucd_power.hvbias_on()
+
+    # Set back bias switch on
     print "Setting back bias switch on."
     fp.sendSynchCommand("{0}/Reb0 setBackBias True".format(raftname))
 
-    bbs = BackBiasCheck.BackBias()
-    bbs.check_connections()
-    voltage = float(bbs.read_BSS())
-    current = float(bbs.read_ISS())
-
-    now = datetime.now()
-    output = '{0}, Vss = {1:.4f}, Iss = {2:.4f}'.format(now, voltage, current)
-    print output
+    # Print HVBias state
+    name, state, voltage, current = ucd_power.hvbias_control.get_state()
+    print '{0}: State = {1}, voltage = {2:.3f} V, current = {3:.3f} A'.format(name, state, voltage, current))
 
     return True
 
 def set_backbias_off(raftname):
 
+    # Connect control systems
     fp = CCS.attachSubsystem("ucd-fp")
-    ccdState = fp.sendSynchCommand("{0}/Reb0 getCCDsPowerState".format(raftname))
-    
-    if ccdState == 'OFF':
-        print "CCD was powered off but back bias was on!"
+    ucd_power = UCDPowerMain()
 
     print "Setting back bias switch off."
     fp.sendSynchCommand("{0}/Reb0 setBackBias false".format(raftname))
-    PowerSupplyConfig.power_bss_off()
+    ucd_power.hvbias_off()
+
+    # Print HVBias state
+    name, state, voltage, current = ucd_power.hvbias_control.get_state()
+    print '{0}: State = {1}, voltage = {2:.3f} V, current = {3:.3f} A'.format(name, state, voltage, current))
 
     return True
 
