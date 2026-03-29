@@ -1,8 +1,13 @@
 #!/usr/bin/env ccs-script
-from xyz.froud.jvisa import JVisaResourceManager, JVisaException
+from com.fazecast.jSerialComm import SerialPort
+from ccs.data import DeviceException
+import jarray
+
+# Add support for two character read_terminator.
+# * Currently only supports single character read terminator
 
 class SerialDevice(object):
-    """Interface to a SCPI-commanded device.
+    """Interface to a serial device.
 
     Parameters
     ----------
@@ -18,12 +23,12 @@ class SerialDevice(object):
         Read operation terminator.
     """
 
-    def __init__(self, devc_name, devc_id, baud_rate=None, write_terminator=None, read_terminator=None):
+    def __init__(self, devc_name, devc_id, baud_rate=9600, write_terminator=None, read_terminator='\n'):
         self._devc_name = devc_name
         self._devc_id = devc_id
         self._baud_rate = baud_rate
         self._write_terminator = write_terminator
-        self._read_terminator = read_terminator
+        self._read_terminator = '\n' # For now ignore the entered read_terminator and use default
         self.initialize()
 
     @property
@@ -57,45 +62,128 @@ class SerialDevice(object):
         return self._read_terminator
 
     @property
-    def instrument(self):
-        """A VISA instrument (`xyz.froud.jvisa.JVisaInstrument`).
+    def port(self):
+        """A serial port (`com.fazecast.jSerialComm.SerialPort`).
         """
-        return self._instrument
+        return self._port
 
     def initialize(self):
-        """Initialize the connection to the instrument.
+        """Initialize connection to the device.
 
         Raises
         ------
-        JVisaException
-            Raised if there is an error communicating with the device.
+        DeviceException
+            Raised if failed to open port.
         """
-        rm = JVisaResourceManager()
-        self._instrument = rm.openInstrument(self.devc_id)
-        if self.baud_rate is not None:
-            self.instrument.setSerialBaudRate(self.baud_rate)
-        if self.write_terminator is not None:
-            self.instrument.setWriteTerminator(self.write_terminator)
-        if self.read_terminator is not None:
-            self.instrument.setReadTerminationCharacter(self.read_terminator)
-        
+        self._port = SerialPort.getCommPort(self._devc_id)
+        self.port.setBaudRate(self.baud_rate)
+        self.port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 1000, 0)
+        self.port.openPort()
+
         if not self.is_connected():
             self.close()
-            raise JVisaException("Error communicating with device: {0}".format(self.devc_name)) 
+            raise DeviceException("Failed to open port {0}".format(self._devc_id))
 
     def close(self):
-        """Closes the connection to the instrument."""
-        try:
-            self.instrument.close()
-        except JVisaException:
-            pass
+        """Close serial port connection to the device.
+        """
+        if self.port.isOpen():
+            self.port.closePort() # could raise an error
 
     def is_connected(self):
-        """Check if the instrument is connected.
+        """Check that status of the device connection.
+
+        Returns
+        -------
+        connected : `bool`
+            `True` if the device is connected. `False` if not.
+        """
+        return self.port.isOpen()
+
+    def write(self, cmd):
+        """Write command to the device.
+
+        Parameters
+        ----------
+        cmd : `str`
+            The command to write to the device, excluding write terminator.
 
         Raises
         ------
-        NotImplementedError
-            Raised if not implemented in child class.
+        DeviceException
+            Raised if write operation failed.
         """
-        raise NotImplementedError
+        if self.write_terminator is not None:
+            cmd += self.write_terminator
+        num_written = self.port.writeBytes(cmd, len(cmd))
+
+        if num_written < 0: # Throw exception if write fails
+            raise DeviceException("Failed to write command: {0}".format(cmd))
+
+    def read(self, num_bytes=1024):
+        """Read response from the device.
+
+        Bytes are read one-by-one to a buffer until either the read terminator
+        is returned, no bytes are returned, or the maximum number of bytes is 
+        read.
+
+        If no bytes are returned by the device, the read operation will
+        timeout after 1000 ms. 
+
+        Parameters
+        ----------
+        num_bytes : `int`, optional
+            Maximum number of bytes to read (1024, by default).
+
+        Returns
+        -------
+        response : `str`
+            Response from the device, excluding read terminator.
+        
+        Raises
+        ------
+        DeviceException
+            Raised if read operation failed.
+        """
+        buf = jarray.zeros(num_bytes, 'b')
+        n = 0
+        while n < num_bytes:
+            num_read = self.port.readBytes(buf, 1, n) 
+            if num_read == -1:
+                raise DeviceException('Failed to read from device.')
+
+            if num_read == 0:
+                break
+
+            if buf[n] == ord(self.read_terminator[0]):
+                break
+            n += 1
+     
+        return str(bytearray(buf[:n])).rstrip()
+
+    def query(self, cmd, num_bytes=1024):
+        """Query a response from the device.
+
+        Parameters
+        ----------
+        cmd : `str`
+            The command to write to the device, excluding write terminator.
+        num_bytes : `int`, optional
+            Maximum number of bytes to read (1024, by default).
+        use_read_terminator : `bool`, optional
+            Use the read terminator if `True`.
+
+        Returns
+        -------
+        response : `str`
+            Response from the device, excluding read terminator.
+
+        Raises
+        ------
+        DeviceException
+            Raised if read or write operation failed during query.
+        """
+        self.write(cmd)
+        res = self.read(num_bytes)
+
+        return res

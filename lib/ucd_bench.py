@@ -3,18 +3,19 @@
 import time
 import logging
 import SphereConfig
-import ShutterConfig
+#import ShutterConfig
+from ccs.teststand import SciinTechPS500Device
 
 logger = logging.getLogger(__name__)
 SHUTTERDELAY = 1.0
 
-shutter = ShutterConfig.Shutter()
+shutter = SciinTechPS500Device('/dev/serial/by-path/pci-0000:00:14.0-usb-0:7.1.4:1.0-port0')
 sphere = SphereConfig.Sphere()
 
 def sanityCheck():
     
-    status = shutter.status()
-    logger.debug(status)
+    state = shutter.read_state()
+    logger.debug(state)
 
 def openShutter(exposure):
 
@@ -22,14 +23,14 @@ def openShutter(exposure):
         sanityCheck()
     except RuntimeError:
         logger.warning("Shutter in unknown state, resetting and attempting to close.")
-        shutter.reset()
+        shutter.reset_shutter()
         time.sleep(4)
-        shutter.close()
+        shutter.close_shutter()
         time.sleep(SHUTTERDELAY)
     logger.debug("Open shutter for {0} seconds".format(exposure))
-    shutter.open()
+    shutter.open_shutter()
     time.sleep(exposure)
-    shutter.close()
+    shutter.close_shutter()
     time.sleep(SHUTTERDELAY)
     logger.debug("Shutter closed")
 
