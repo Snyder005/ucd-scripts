@@ -1,6 +1,7 @@
 #!/usr/bin/env ccs-script
 from com.fazecast.jSerialComm import SerialPort
-from ccs.data import DeviceException
+from com.fazecast.jSerialComm import SerialPortInvalidPortException
+from ccs.data import DeviceError
 import jarray
 
 # Add support for two character read_terminator.
@@ -75,20 +76,23 @@ class SerialDevice(object):
         DeviceException
             Raised if failed to open port.
         """
-        self._port = SerialPort.getCommPort(self._devc_id)
+        try:
+            self._port = SerialPort.getCommPort(self.devc_id)
+        except SerialPortInvalidPortException as e:
+            raise DeviceError("Invalid serial port {0}".format(self.devc_id), cause=e)
+
         self.port.setBaudRate(self.baud_rate)
         self.port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 1000, 0)
-        self.port.openPort()
 
+        self.port.openPort()
         if not self.is_connected():
             self.close()
-            raise DeviceException("Failed to open port {0}".format(self._devc_id))
+            raise DeviceError("Failed to open port {0}".format(self.devc_id))
 
     def close(self):
         """Close serial port connection to the device.
         """
-        if self.port.isOpen():
-            self.port.closePort() # could raise an error
+        self.port.closePort()
 
     def is_connected(self):
         """Check that status of the device connection.
@@ -118,7 +122,7 @@ class SerialDevice(object):
         num_written = self.port.writeBytes(cmd, len(cmd))
 
         if num_written < 0: # Throw exception if write fails
-            raise DeviceException("Failed to write command: {0}".format(cmd))
+            raise DeviceError("Failed to write command: {0}".format(cmd))
 
     def read(self, num_bytes=1024):
         """Read response from the device.
@@ -150,7 +154,7 @@ class SerialDevice(object):
         while n < num_bytes:
             num_read = self.port.readBytes(buf, 1, n) 
             if num_read == -1:
-                raise DeviceException('Failed to read from device.')
+                raise DeviceError('Failed to read from device.')
 
             if num_read == 0:
                 break

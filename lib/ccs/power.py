@@ -2,13 +2,13 @@
 # To Do:
 # * Write init function for UCDPower to create from properties file.
 # * Create state functions to handle printing channel states.
-# * Error handling of PowerException and DeviceException (from SerialDevice)
+# * Error handling of PowerError and DeviceError (from SerialDevice)
 # * (Optional) Add check for not connected to read/write/query.
 #   Refuse all commands if not connected. Raise exception?
 # * (Optional) Add ID check to initialize method
 from ccs.device import SerialDevice
-from ccs.data import PowerException
-from ccs.data import DeviceException
+from ccs.data import PowerError
+from ccs.data import DeviceError
 
 class UCDPowerMain(object):
 
@@ -156,7 +156,7 @@ class PowerControl(object):
 
     Raises
     ------
-    PowerException
+    PowerError
         Raised if the hardware channel number is invalid.
     """
 
@@ -164,7 +164,7 @@ class PowerControl(object):
         self.name = name
         self.devc = devc
         if (hw_chan < self.devc.MIN_CHAN) or (hw_chan > self.devc.MAX_CHAN):
-            raise PowerException('HW channel number is invalid: {0}'.format(hw_chan))
+            raise PowerError('HW channel number is invalid: {0}'.format(hw_chan))
         else:
             self.hw_chan = hw_chan
         self.op_voltage = op_voltage
@@ -176,7 +176,7 @@ class PowerControl(object):
             state = self.read_output()
             voltage = 0.0 if state == 'NC' else self.read_voltage()
             current = 0.0 if state == 'NC' else self.read_current()
-        except PowerException:
+        except PowerError:
             state = 'NC'
             voltage = 0.0
             current = 0.0
@@ -265,7 +265,7 @@ class PowerDevice(SerialDevice):
 
         Raises
         ------
-        DeviceException
+        DeviceError
             Raised if unable to read identification string.
         """
         idn = self.query('*IDN?')
@@ -274,16 +274,16 @@ class PowerDevice(SerialDevice):
     # Override
     def _query(self, cmd, num_bytes=1024):
         try:
-            super(PowerDevice, self).query(cmd, num_bytes=num_bytes, use_read_terminator=use_read_terminator)
-        except DeviceException:
-            raise PowerException
+            super(PowerDevice, self).query(cmd, num_bytes=num_bytes)
+        except DeviceError:
+            raise PowerError
 
     # Override
     def _write(self):
         try:
             super(PowerDevice, self).write(cmd)
-        except DeviceException:
-            raise PowerException
+        except DeviceError:
+            raise PowerError
 
 class BK1697BDevice(PowerDevice):
     """Interface to a B&K model 1697B power supply device.
@@ -354,7 +354,7 @@ class BK1697BDevice(PowerDevice):
 
         Raises
         ------
-        PowerException
+        PowerError
             Raised if an unknown response string is encountered.
         """
         if not self.is_connected():
@@ -366,7 +366,7 @@ class BK1697BDevice(PowerDevice):
         elif response == '1':
             return 'OFF'
         else:
-            raise PowerException("Unknown response string encountered: {0}".format(response))
+            raise PowerError("Unknown response string encountered: {0}".format(response))
         return state
 
     def write_output(self, state, channel=None):
@@ -379,7 +379,7 @@ class BK1697BDevice(PowerDevice):
 
         Raises
         ------
-        PowerException
+        PowerError
             Raised if ``state`` is an invalid value.
         """
         if state == 'ON':
@@ -387,7 +387,7 @@ class BK1697BDevice(PowerDevice):
         elif state == 'OFF':
             self.write('OUTPUT 1')
         else:
-            raise PowerException("Not a valid value: {0}".format(state))
+            raise PowerError("Not a valid value: {0}".format(state))
 
 class BK9184Device(PowerDevice):
     """Interface to a B&K model 9184 power supply device.
@@ -442,7 +442,7 @@ class BK9184Device(PowerDevice):
             voltage, by default)
         """
         if voltage > self.MAX_VOLTAGE: # check to protect CCD
-            raise PowerException
+            raise PowerError
         self.write('VOLT {0:.3f}'.format(voltage))
 
     def get_current(self, channel=None):
@@ -473,7 +473,7 @@ class BK9184Device(PowerDevice):
 
         Raises
         ------
-        PowerException
+        PowerError
             Raised if an unknown response string is encountered.
         """
         if not self.is_connected():
@@ -481,7 +481,7 @@ class BK9184Device(PowerDevice):
 
         state = self.query('OUT?')
         if state not in {'ON', 'OFF'}:
-            raise PowerException("Unknown response string encountered: {0}".format(state))
+            raise PowerError("Unknown response string encountered: {0}".format(state))
         return state
 
     def write_output(self, state, channel=None):
@@ -494,13 +494,13 @@ class BK9184Device(PowerDevice):
 
         Raises
         ------
-        PowerException
+        PowerError
             Raised if parameter ``state`` is an invalid value.
         """
         if state in ['ON', 'OFF']:
             self.write('OUT {0}'.format(state))
         else:
-            raise PowerException("Not a valid value: {0}".format(state))
+            raise PowerError("Not a valid value: {0}".format(state))
 
 class BK9130BDevice(PowerDevice):
     """Interface to a B&K model 9130B power supply device.
@@ -533,7 +533,7 @@ class BK9130BDevice(PowerDevice):
 
         Raises
         ------
-        PowerException
+        PowerError
             Raised if ``channel`` is an invalid channel number.
         """
         self.write_select(channel)
@@ -566,7 +566,7 @@ class BK9130BDevice(PowerDevice):
 
         Raises
         ------
-        PowerException
+        PowerError
             Raised if ``channel`` is an invalid channel number.
         """
         self.write_select(channel)
@@ -597,7 +597,7 @@ class BK9130BDevice(PowerDevice):
     
         Raises
         ------
-        PowerException
+        PowerError
             Raised if ``channel`` is an invalid channel number.
         """
         self.write_select(channel)
@@ -654,7 +654,7 @@ class BK9130BDevice(PowerDevice):
 
         Raises
         ------
-        PowerException
+        PowerError
             Raised if ``channel`` is an invalid channel number or an unknown
             response string is encountered.
         """
@@ -668,7 +668,7 @@ class BK9130BDevice(PowerDevice):
         elif response == '1':
             state = 'ON'
         else:
-            raise PowerException("Unknown response string encountered: {0}".format(response))
+            raise PowerError("Unknown response string encountered: {0}".format(response))
         return state
 
     def read_outputs(self):
@@ -681,7 +681,7 @@ class BK9130BDevice(PowerDevice):
     
         Raises
         ------
-        PowerException
+        PowerError
             Raised if an unknown response string is encountered.
         """
         if not self.is_connected():
@@ -695,7 +695,7 @@ class BK9130BDevice(PowerDevice):
             elif response == '1':
                 states.append('ON')
             else:
-                raise PowerException("Unknown response string encountered: {0}".format(response))
+                raise PowerError("Unknown response string encountered: {0}".format(response))
         return states
 
     def write_output(self, state, channel):
@@ -710,7 +710,7 @@ class BK9130BDevice(PowerDevice):
 
         Raises
         ------
-        PowerException
+        PowerError
             Raised if ``channel`` is an invalid channel number or if ``state``
             is an invalid value.
         """
@@ -720,7 +720,7 @@ class BK9130BDevice(PowerDevice):
         elif state == 'OFF':
             self.write('CHAN:OUTP 0')
         else:
-            raise PowerException("Not a valid value: {0}".format(state))
+            raise PowerError("Not a valid value: {0}".format(state))
 
     def write_outputs(self, states):
         """Write output states to the power supply channels.
@@ -732,7 +732,7 @@ class BK9130BDevice(PowerDevice):
 
         Raises
         ------
-        PowerException
+        PowerError
             Raised if ``states`` contains an invalid value.
         """
         outputs = []
@@ -742,7 +742,7 @@ class BK9130BDevice(PowerDevice):
             elif state == 'OFF':
                 outputs.append('0')
             else:
-                raise PowerException("Not a valid value: {0}".format(state))
+                raise PowerError("Not a valid value: {0}".format(state))
 
         self.write('APP:OUT {0},{1},{2}'.format(*outputs))        
 
@@ -756,9 +756,9 @@ class BK9130BDevice(PowerDevice):
 
         Raises
         ------
-        PowerException
+        PowerError
             Raised if ``channel`` is an invalid channel number.
         """
         if channel not in [1, 2, 3]:
-            raise PowerException("Invalid channel number: {0}".format(channel))
+            raise PowerError("Invalid channel number: {0}".format(channel))
         self.write('INST:NSEL {0}'.format(channel))

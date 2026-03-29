@@ -1,12 +1,22 @@
 #!/usr/bin/env ccs-script
-class DeviceException(Exception):
+class DeviceError(Exception):
 
-    def __init__(self, message):
-        self.message = message
-        super(PowerException, self).__init__(self.message)
+    def __init__(self, message, cause=None):
+        super(DeviceError, self).__init__(message)
+        self.cause = cause
 
-class PowerException(Exception):
+    def __str__(self):
+        result = super(DeviceError, self).__str__()
 
-    def __init__(self, message):
-        self.message = message
-        super(PowerException, self).__init__(self.message)
+        cause = self.cause
+        while cause is not None:
+            result += " -> caused by {0!r}".format(cause)
+
+            if hasattr(cause, "cause"):
+                cause = getattr(cause, "cause")
+            else:
+                cause = None
+        return result
+
+class PowerError(DeviceError):
+    pass
