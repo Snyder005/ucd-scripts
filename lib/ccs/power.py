@@ -2,9 +2,6 @@
 # To Do:
 # * Write init function for UCDPower to create from properties file.
 # * Create state functions to handle printing channel states.
-# * Error handling of PowerError and DeviceError (from SerialDevice)
-# * (Optional) Add check for not connected to read/write/query.
-#   Refuse all commands if not connected. Raise exception?
 # * (Optional) Add ID check to initialize method
 from ccs.device import SerialDevice
 from ccs.data import PowerError
@@ -234,6 +231,12 @@ class PowerControl(object):
 
 class PowerDevice(SerialDevice):
 
+    def initialize(self):
+        try:
+            super(PowerDevice, self).initialize()
+        except DeviceError as e:
+            raise PowerError("Failed to initialize: {0}".format(self.__class.__name__), cause=e)
+
     def is_connected(self):
         """Check if the power supply is connected.
 
@@ -249,11 +252,10 @@ class PowerDevice(SerialDevice):
         if not super(PowerDevice, self).is_connected():
             return False
         try:
-            idn = self.get_idn() # Must throw an exception
-        except:
+            idn = self.get_idn()
+        except PowerError:
             return False
-        else:
-            return True
+        return True
 
     def get_idn(self):
         """Get the identification string of the power supply.
@@ -265,25 +267,23 @@ class PowerDevice(SerialDevice):
 
         Raises
         ------
-        DeviceError
-            Raised if unable to read identification string.
+        PowerError
+            Raised if failed to query identification string.
         """
         idn = self.query('*IDN?')
         return idn
 
-    # Override
-    def _query(self, cmd, num_bytes=1024):
+    def read(self, num_bytes=1024):
         try:
-            super(PowerDevice, self).query(cmd, num_bytes=num_bytes)
-        except DeviceError:
-            raise PowerError
+            return super(PowerDevice, self).read(num_bytes=num_bytes)
+        except DeviceError as e:
+            raise PowerError("Failed to read: {0}".format(self.__class.__name__), cause=e)
 
-    # Override
-    def _write(self):
+    def write(self, cmd):
         try:
             super(PowerDevice, self).write(cmd)
-        except DeviceError:
-            raise PowerError
+        except DeviceError as e:
+            raise PowerError("Failed to write: {0}".format(self.__class.__name__), cause=e)
 
 class BK1697BDevice(PowerDevice):
     """Interface to a B&K model 1697B power supply device.
