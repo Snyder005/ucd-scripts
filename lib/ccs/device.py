@@ -18,7 +18,7 @@ class SerialDevice(object):
     devc_name : `str`
         Device name.
     devc_id : `str`
-        Device resource name.
+        Device serial port name.
     baud_rate : `int`, optional
         Serial baud rate.
     write_terminator : `str`, optional
@@ -82,7 +82,7 @@ class SerialDevice(object):
         try:
             self._port = SerialPort.getCommPort(self.devc_id)
         except SerialPortInvalidPortException as e:
-            self._raise_error("Invalid serial port: {0}".format(self.devc_id), cause=e)
+            self._raise_error("invalid serial port name: {0}".format(self.devc_id), cause=e)
 
         self.port.setBaudRate(self.baud_rate)
         self.port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 1000, 0)
@@ -90,7 +90,7 @@ class SerialDevice(object):
         self.port.openPort()
         if not self.is_connected():
             self.close()
-            self._raise_error("Failed to initialize port: {0}".format(self.devc_id))
+            self._raise_error("failed to initialize device".format(self.__class__.__name__))
 
     def close(self):
         """Close serial port connection to the device.
@@ -125,7 +125,7 @@ class SerialDevice(object):
         num_written = self.port.writeBytes(cmd, len(cmd))
 
         if num_written < 0:
-            self._raise_error("Error writing to port: {0}".format(self.devc_id))
+            self._raise_error("error writing to serial port")
 
     def read(self, num_bytes=1024):
         """Read response from the device.
@@ -157,7 +157,7 @@ class SerialDevice(object):
         while n < num_bytes:
             num_read = self.port.readBytes(buf, 1, n) 
             if num_read == -1:
-                self._raise_error("Error reading from port: {0}".format(self.devc_id))
+                self._raise_error("error reading from serial port")
 
             if num_read == 0:
                 break
