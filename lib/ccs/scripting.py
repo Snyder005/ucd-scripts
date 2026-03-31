@@ -1,5 +1,4 @@
 #!/usr/bin/env ccs-script
-# are underscores necessary?
 from java.time import Duration
 from org.lsst.ccs.scripting import CCS as _JavaCCS
 
@@ -23,7 +22,10 @@ class CCSProxy(object):
                 self._child_proxies[target_path] = CCSProxy(self._ccs, self._subsystem, target=target)
             return self._child_proxies[target_path]
 
-        def forward(*args, is_async=False, timeout=None):
+        def forward(*args, **kwargs):
+            is_async = kwargs.get('is_async', False)
+            timeout = kwargs.get('timeout', None)
+
             command = self._build_command(name)
             if is_async:
                 return self._ccs.sendAsynchCommand(command, args) 
@@ -60,6 +62,5 @@ class CCSProxy(object):
 def attachProxy(key, level=0):
    return CCSProxy(_JavaCCS.attachSubsystem(key, level), key)
 
-_JavaCCS.attachProxy = attachProxy
-
+_JavaCCS.attachProxy = staticmethod(attachProxy)
 CCS = _JavaCCS
