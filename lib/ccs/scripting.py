@@ -10,21 +10,22 @@ class CCSProxy(object):
         self._subsystem = subsystem
         self._target = target
         self._targets = set(ccs.sendSynchCommand("getCommandTargets"))
+        self._child_proxies = {}
 
     def __getattr__(self, name):
         if hasattr(self._ccs, name):
             return getattr(self._ccs, name)
 
-        target = self._build_target(name, include_subsystem=True)
-        if target in self._targets:
-            if target not in self._child_proxies:
-                new_target = self._build_target(name)
-                self._child_proxies[target] = CCSProxy(self._ccs, self._subsystem, target=new_target)
-            return self._child_proxies[target]
+        target_path = self._build_target(name, include_subsystem=True)
+        if target_path in self._targets:
+            if target_path not in self._child_proxies:
+                target = self._build_target(name)
+                self._child_proxies[target_path] = CCSProxy(self._ccs, self._subsystem, target=target)
+            return self._child_proxies[target_path]
 
-        def forward(*args, async_call=False, timeout=None):
+        def forward(*args, is_async=False, timeout=None):
             command = self._build_command(name)
-            if async_call:
+            if is_async:
                 return self._ccs.sendAsynchCommand(command, args) 
             if timeout is not None:
                 timeout = self.parse_timeout(timeout)
@@ -35,7 +36,7 @@ class CCSProxy(object):
         return forward
 
     def __repr__(self):
-        return "<CCSProxy subsystem={0!r} target={1!r}>" % (self._subsystem, self._target)
+        return "<CCSProxy subsystem={0!r} target={1!r}>".format(self._subsystem, self._target)
 
     def _build_command(self, name):
         return " ".join(filter(None, [self._target, name]))
