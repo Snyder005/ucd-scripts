@@ -5,25 +5,25 @@ from org.lsst.ccs.scripting import CCS as _JavaCCS
 
 class CCSProxy(object):
     
-    def __init__(self, ccs, subsystemName):
+    def __init__(self, ccs, subsystem, target=None):
         self._ccs = ccs
-        self._subsystem = subsystemName
-        self._target = None
+        self._subsystem = subsystem
+        self._target = target
         self._targets = set(ccs.sendSynchCommand("getCommandTargets"))
 
     def __getattr__(self, name):
         if hasattr(self._ccs, name):
             return getattr(self._ccs, name)
 
-        if self._build_target_path(name) in self._targets:
-            def create_proxy():
-                proxy = CCSProxy(self._ccs, self._subsystem)
-                proxy._target = self._build_target(name)
-                return proxy
-            return create_proxy         
+        target = self._build_target(name, include_subsystem=True)
+        if target in self._targets:
+            if target not in self._child_proxies:
+                new_target = self._build_target(name)
+                self._child_proxies[target] = CCSProxy(self._ccs, self._subsystem, target=new_target)
+            return self._child_proxies[target]
 
         def forward(*args, async_call=False, timeout=None):
-            command = self._build_command(name) if self._target is not None else name
+            command = self._build_command(name)
             if async_call:
                 return self._ccs.sendAsynchCommand(command, args) 
             if timeout is not None:
@@ -38,13 +38,13 @@ class CCSProxy(object):
         return "<CCSProxy subsystem={0!r} target={1!r}>" % (self._subsystem, self._target)
 
     def _build_command(self, name):
-        return " ".join([self._target], name)
+        return " ".join(filter(None, [self._target, name]))
 
-    def _build_target(self, name):
-        return "/".join(filter(None, [self._target, name]))
-
-    def _build_target_path(self, name):
-        return "/".join(filter(None, [self._subsystem, self._target, name]))
+    def _build_target(self, name, include_subsystem=False):
+        parts = [self._target, name]
+        if include_subsystem:
+            parts = [self._subsystem] + parts
+        return "/".join(filter(None, parts))
 
     @staticmethod
     def parse_timeout(timeout):
