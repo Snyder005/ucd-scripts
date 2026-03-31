@@ -1,10 +1,14 @@
 #!/usr/bin/env ccs-script
 from com.fazecast.jSerialComm import SerialPort
-from ccs.data import DeviceException
+from com.fazecast.jSerialComm import SerialPortInvalidPortException
+from ccs.data import DeviceError
 import jarray
 
 # Add support for two character read_terminator.
-# * Currently only supports single character read terminator
+#   * Currently only supports single character read terminator
+# (Optional) Change error handling behavior to base-hook method
+#   * Add error_type, raise_error, and fmt_error to SerialDevice class
+#   * Write overrides for the above to reformat as PowerError 
 
 class SerialDevice(object):
     """Interface to a serial device.
@@ -14,7 +18,7 @@ class SerialDevice(object):
     devc_name : `str`
         Device name.
     devc_id : `str`
-        Device resource name.
+        Device serial port name.
     baud_rate : `int`, optional
         Serial baud rate.
     write_terminator : `str`, optional
@@ -72,23 +76,26 @@ class SerialDevice(object):
 
         Raises
         ------
-        DeviceException
+        DeviceError
             Raised if failed to open port.
         """
-        self._port = SerialPort.getCommPort(self._devc_id)
+        try:
+            self._port = SerialPort.getCommPort(self.devc_id)
+        except SerialPortInvalidPortException as e:
+            self._raise_error("invalid serial port name: {0}".format(self.devc_id), cause=e)
+
         self.port.setBaudRate(self.baud_rate)
         self.port.setComPortTimeouts(SerialPort.TIMEOUT_READ_BLOCKING, 1000, 0)
-        self.port.openPort()
 
+        self.port.openPort()
         if not self.is_connected():
             self.close()
-            raise DeviceException("Failed to open port {0}".format(self._devc_id))
+            self._raise_error("failed to initialize device".format(self.__class__.__name__))
 
     def close(self):
         """Close serial port connection to the device.
         """
-        if self.port.isOpen():
-            self.port.closePort() # could raise an error
+        self.port.closePort()
 
     def is_connected(self):
         """Check that status of the device connection.
@@ -110,15 +117,15 @@ class SerialDevice(object):
 
         Raises
         ------
-        DeviceException
+        DeviceError
             Raised if write operation failed.
         """
         if self.write_terminator is not None:
             cmd += self.write_terminator
         num_written = self.port.writeBytes(cmd, len(cmd))
 
-        if num_written < 0: # Throw exception if write fails
-            raise DeviceException("Failed to write command: {0}".format(cmd))
+        if num_written < 0:
+            self._raise_error("error writing to serial port")
 
     def read(self, num_bytes=1024):
         """Read response from the device.
@@ -142,7 +149,7 @@ class SerialDevice(object):
         
         Raises
         ------
-        DeviceException
+        DeviceError
             Raised if read operation failed.
         """
         buf = jarray.zeros(num_bytes, 'b')
@@ -150,7 +157,7 @@ class SerialDevice(object):
         while n < num_bytes:
             num_read = self.port.readBytes(buf, 1, n) 
             if num_read == -1:
-                raise DeviceException('Failed to read from device.')
+                self._raise_error("error reading from serial port")
 
             if num_read == 0:
                 break
@@ -180,10 +187,13 @@ class SerialDevice(object):
 
         Raises
         ------
-        DeviceException
+        DeviceError
             Raised if read or write operation failed during query.
         """
         self.write(cmd)
         res = self.read(num_bytes)
 
         return res
+
+    def _raise_error(self, message, cause=None):
+        raise DeviceError(message, cause=cause)
