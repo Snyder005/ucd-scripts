@@ -5,6 +5,7 @@
 # * (Optional) Add ID check to initialize method
 from ccs.device import SerialDevice
 from ccs.data import PowerError
+from time import sleep
 
 class UCDPowerMain(object):
 
