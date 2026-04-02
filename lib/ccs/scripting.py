@@ -59,8 +59,8 @@ class CCSProxy(object):
             return Duration.parse(timeout)
         raise TypeError("Invalid timeout: {0!r}".format(timeout))
 
-def attachProxy(key, level=0):
-   return CCSProxy(_JavaCCS.attachSubsystem(key, level), key)
+def attachProxy(key, level=0, target=None):
+   return CCSProxy(_JavaCCS.attachSubsystem(key, level), key, target=target)
 
 _JavaCCS.attachProxy = staticmethod(attachProxy)
 CCS = _JavaCCS

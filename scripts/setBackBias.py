@@ -7,7 +7,7 @@
 import argparse
 from datetime import datetime
 
-from org.lsst.ccs.scripting import CCS
+from ccs.scripting import CCS
 from ccs.power import UCDPowerMain
 
 def set_backbias_on(raftname):

@@ -1,9 +1,12 @@
 #!/usr/bin/env ccs-script
-from org.lsst.ccs.scripting import CCS
 from org.lsst.ccs.bus.states import AlertState
 from org.lsst.ccs.subsystem.focalplane.states import FocalPlaneState
 from java.time import Duration
-from ccs import proxies
+
+import time
+import logging
+
+from ccs.scripting import CCS
 import time
 import logging
 
