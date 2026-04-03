@@ -22,7 +22,7 @@ class UCDPowerMain(object):
                              'Heater' : PowerControl('Heater', self.bk9130b1, 2, 12.0, 1.0),
                              'Digital' : PowerControl('Digital', self.bk9130b1, 3, 5.0, 1.5),
                              'ClockLow' : PowerControl('ClockLow', self.bk9130b2, 1, 15.0, 0.1),
-                             'ClockHigh' : PowerControl('ClockHigh', self.bk9130b2, 2, 15.0, 0.1),
+                             'ClockHigh' : PowerControl('ClockHigh', self.bk9130b2, 2, 15.0, 0.110),
                              'OD' : PowerControl('OD', self.bk1697b, 0, 38.0, 0.05)}
 
         self.hvbias_control = PowerControl('HVBias', self.bk9184, 0, 50.0, 0.001)

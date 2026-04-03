@@ -31,7 +31,7 @@ def set_backbias_on(raftname):
 
     # Print HVBias state
     name, state, voltage, current = ucd_power.hvbias_control.get_state()
-    print '{0}: State = {1}, voltage = {2:.3f} V, current = {3:.3f} A'.format(name, state, voltage, current))
+    print '{0}: State = {1}, voltage = {2:.3f} V, current = {3:.3f} A'.format(name, state, voltage, current)
 
     return True
 
@@ -47,7 +47,7 @@ def set_backbias_off(raftname):
 
     # Print HVBias state
     name, state, voltage, current = ucd_power.hvbias_control.get_state()
-    print '{0}: State = {1}, voltage = {2:.3f} V, current = {3:.3f} A'.format(name, state, voltage, current))
+    print '{0}: State = {1}, voltage = {2:.3f} V, current = {3:.3f} A'.format(name, state, voltage, current)
 
     return True
 
@@ -55,17 +55,14 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(sys.argv[0])
     parser.add_argument('name', type=str)
-    parser.add_argument('--vbb', type=float, default=PowerSupplyConfig.VN70)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--on', action='store_true')
-    group.add_argument('--off', action='store_false')
+    group.add_argument('--off', action='store_true')
     args = parser.parse_args()
 
-    state = args.on and args.off
     raftname = args.name
-    vbb = args.vbb
 
-    if state:
-        print(set_backbias_on(raftname, vbb=vbb))
-    else:
+    if args.on:
+        print(set_backbias_on(raftname))
+    elif args.off:
         print(set_backbias_off(raftname))
