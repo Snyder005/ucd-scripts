@@ -5,51 +5,39 @@
 
 #This script turns on/off the back bias voltage.
 import argparse
-from datetime import datetime
+import time
 
 from ccs.scripting import CCS
 from ccs.power import UCDPowerMain
 
 def set_backbias_on(raftname):
-    # To power on CCD should be on.
 
-    # Connect control systems
-    fp = CCS.attachSubsystem("ucd-fp")
+    fp = CCS.attachProxy('ucd-fp', target='{0}/Reb0'.format(raftname))
     ucd_power = UCDPowerMain()
 
-    ## Check CCD state
-    ccdState = fp.sendSynchCommand("{0}/Reb0 getCCDsPowerState".format(raftname))
-    if ccdState == 'OFF':
-        raise RuntimeError("CCD is not powered on!")
-
-    # Power on HVBias power supply
-    ucd_power.hvbias_on()
-
-    # Set back bias switch on
-    print "Setting back bias switch on."
-    fp.sendSynchCommand("{0}/Reb0 setBackBias True".format(raftname))
-
-    # Print HVBias state
-    name, state, voltage, current = ucd_power.hvbias_control.get_state()
-    print '{0}: State = {1}, voltage = {2:.3f} V, current = {3:.3f} A'.format(name, state, voltage, current)
-
-    return True
+    ccd_state = fp.getCCDsPowerState()
+    if ccd_state == 'ON':
+        if not ucd_power.is_hvbias_on():
+            ucd_power.hvbias_on()
+            time.sleep(5) # delay should be implemented into power on
+        if not fp.isBackBiasOn():
+            fp.setBackBias(True)
+    else:
+        raise RuntimeError("invalid CCD power state: {0}".format(ccd_state))
 
 def set_backbias_off(raftname):
 
-    # Connect control systems
-    fp = CCS.attachSubsystem("ucd-fp")
+    fp = CCS.attachProxy('ucd-fp', target='{0}/Reb0'.format(raftname))
     ucd_power = UCDPowerMain()
 
-    print "Setting back bias switch off."
-    fp.sendSynchCommand("{0}/Reb0 setBackBias false".format(raftname))
-    ucd_power.hvbias_off()
-
-    # Print HVBias state
-    name, state, voltage, current = ucd_power.hvbias_control.get_state()
-    print '{0}: State = {1}, voltage = {2:.3f} V, current = {3:.3f} A'.format(name, state, voltage, current)
-
-    return True
+    ccd_state = fp.getCCDsPowerState()
+    if ccd_state == 'ON':
+        if fp.isBackBiasOn():
+            fp.setBackBias(False)
+        if ucd_power.is_hvbias_on():
+            ucd_power.hvbias_off()
+    else:
+        raise RuntimeError("invalid CCD power state: {0}".format(ccd_state))
 
 if __name__ == '__main__':
 
@@ -62,7 +50,9 @@ if __name__ == '__main__':
 
     raftname = args.name
 
-    if args.on:
-        print(set_backbias_on(raftname))
-    elif args.off:
-        print(set_backbias_off(raftname))
+    print "Not implemented yet!"
+    
+#    if args.on:
+#        print(set_backbias_on(raftname))
+#    elif args.off:
+#        print(set_backbias_off(raftname))
