@@ -24,7 +24,7 @@ def set_backbias_on():
         time.sleep(5)
 
     if not fp.R21.Reb0.isBackBiasOn():
-        fp.clear(20)
+        fp.clear(15)
         fp.R21.Reb0.setBackBias(True)
 
 def set_backbias_off():
@@ -37,7 +37,7 @@ def set_backbias_off():
         raise RuntimeError("invalid CCD power state: {0}".format(ccd_state))
 
     if fp.R21.Reb0.isBackBiasOn():
-        fp.clear(20)
+        fp.clear(15)
         fp.R21.Reb0.setBackBias(False)
 
     if ucd_power.is_hvbias_on():
@@ -51,11 +51,8 @@ if __name__ == '__main__':
     group.add_argument('--on', action='store_true')
     group.add_argument('--off', action='store_true')
     args = parser.parse_args()
-
-    raftname = args.name
-
-    print "Not implemented yet!"
     
-#    set_backbias_off()
-#    if args.on:
-#        set_backbias_on()
+    if args.on:
+        set_backbias_on()
+    elif args.off:
+        set_backbias_off()
