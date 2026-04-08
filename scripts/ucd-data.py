@@ -10,10 +10,7 @@ import threading
 from java.time import Duration
 import java.lang.Exception as JException
 
-from org.lsst.ccs.scripting import CCS
-
-from ccs import aliases
-from ccs import proxies
+from ccs.scripting import CCS
 import config
 
 # Temporary work around for problems with CCS responsiveness
@@ -24,7 +21,7 @@ class WarningFilter(object):
     def filter(self, log_record): 
         return log_record.levelno != logging.WARNING
 
-def main(cfgfile, run=None):
+def main(cfgfile):
 
     ## Set up logging
     logger = logging.getLogger()
@@ -39,26 +36,6 @@ def main(cfgfile, run=None):
     stream_handler.setFormatter(log_format)
     logger.addHandler(stream_handler)
 
-    ## Set up handler for daily observing log file
-    ih = CCS.attachSubsystem("ucd-ih")
-    rootdir = ih.sendSynchCommand("getConfigurationParameterValue imageHandler/ImageHandlingConfig FITSRootDirectory")
-    today = datetime.date.today().strftime("%Y%m%d")
-    if not os.path.exists(os.path.join(rootdir, today)):
-        os.makedirs(os.path.join(rootdir, today))
-
-    obsfile_handler = logging.FileHandler(os.path.join(rootdir, today, '{0}_acquisition.log'.format(today)))
-    obsfile_handler.setLevel(logging.INFO)
-    obsfile_handler.addFilter(WarningFilter())
-    obsfile_handler.setFormatter(log_format)
-    logger.addHandler(obsfile_handler)
-
-    ## Set up handler for global log file
-    homedir = os.path.expanduser('~')
-    globalfile_handler = logging.FileHandler(os.path.join(homedir, 'data_acquisition.log'))
-    globalfile_handler.setLevel(logging.DEBUG)
-    globalfile_handler.setFormatter(log_format)
-    logger.addHandler(globalfile_handler)
-
     ## Parse config file and execute data acquisition
     try:
         cfg = config.parseConfig(cfgfile)
@@ -68,9 +45,8 @@ def main(cfgfile, run=None):
 
 if __name__ == '__main__':
 
-    parser = ArgumentParser(sys.argv[0], add_help=False)
+    parser = ArgumentParser()
     parser.add_argument('cfgfile', type=str)
-    parser.add_argument('--run', type=str, default=None)    
 
     args = parser.parse_args()
-    main(args.cfgfile, args.run)
+    main(args.cfgfile)

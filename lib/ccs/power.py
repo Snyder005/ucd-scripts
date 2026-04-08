@@ -20,10 +20,10 @@ class UCDPowerMain(object):
         # Define controls
         self.reb_controls = {'Analog' : PowerControl('Analog', self.bk9130b1, 1, 8.0, 0.75),
                              'Heater' : PowerControl('Heater', self.bk9130b1, 2, 12.0, 1.0),
-                             'Digital' : PowerControl('Digital', self.bk9130b1, 3, 5.0, 1.5),
-                             'ClockLow' : PowerControl('ClockLow', self.bk9130b2, 1, 15.0, 0.1),
-                             'ClockHigh' : PowerControl('ClockHigh', self.bk9130b2, 2, 15.0, 0.1),
-                             'OD' : PowerControl('OD', self.bk1697b, 0, 38.0, 0.05)}
+                             'Digital' : PowerControl('Digital', self.bk9130b1, 3, 5.0, 1.5), # drop to 1A?
+                             'ClockLow' : PowerControl('ClockLow', self.bk9130b2, 1, 15.0, 0.15),
+                             'ClockHigh' : PowerControl('ClockHigh', self.bk9130b2, 2, 15.0, 0.3), # increased from 200 mA
+                             'OD' : PowerControl('OD', self.bk1697b, 0, 38.0, 0.09)} # increased from 0.05A
 
         self.hvbias_control = PowerControl('HVBias', self.bk9184, 0, 50.0, 0.001)
         self.otm_control = PowerControl('OTM', self.bk9130b2, 3, 5.0, 0.5)
