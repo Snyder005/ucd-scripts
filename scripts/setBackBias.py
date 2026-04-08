@@ -10,39 +10,43 @@ import time
 from ccs.scripting import CCS
 from ccs.power import UCDPowerMain
 
-def set_backbias_on(raftname):
+def set_backbias_on():
 
-    fp = CCS.attachProxy('ucd-fp', target='{0}/Reb0'.format(raftname))
+    fp = CCS.attachProxy('ucd-fp')
     ucd_power = UCDPowerMain()
 
-    ccd_state = fp.getCCDsPowerState()
-    if ccd_state == 'ON':
-        if not ucd_power.is_hvbias_on():
-            ucd_power.hvbias_on()
-            time.sleep(5) # delay should be implemented into power on
-        if not fp.isBackBiasOn():
-            fp.setBackBias(True)
-    else:
+    ccd_state = fp.R21.Reb0.getCCDsPowerState()
+    if ccd_state != 'ON':
         raise RuntimeError("invalid CCD power state: {0}".format(ccd_state))
 
-def set_backbias_off(raftname):
+    if not ucd_power.is_hvbias_on():
+        ucd_power.hvbias_on()
+        time.sleep(5)
 
-    fp = CCS.attachProxy('ucd-fp', target='{0}/Reb0'.format(raftname))
+    if not fp.R21.Reb0.isBackBiasOn():
+        fp.clear(20)
+        fp.R21.Reb0.setBackBias(True)
+
+def set_backbias_off():
+
+    fp = CCS.attachProxy('ucd-fp')
     ucd_power = UCDPowerMain()
 
-    ccd_state = fp.getCCDsPowerState()
-    if ccd_state == 'ON':
-        if fp.isBackBiasOn():
-            fp.setBackBias(False)
-        if ucd_power.is_hvbias_on():
-            ucd_power.hvbias_off()
-    else:
+    ccd_state = fp.R21.Reb0.getCCDsPowerState()
+    if ccd_state != 'ON':
         raise RuntimeError("invalid CCD power state: {0}".format(ccd_state))
+
+    if fp.R21.Reb0.isBackBiasOn():
+        fp.clear(20)
+        fp.R21.Reb0.setBackBias(False)
+
+    if ucd_power.is_hvbias_on():
+        ucd_power.hvbias_off()
+        time.sleep(5)
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(sys.argv[0])
-    parser.add_argument('name', type=str)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--on', action='store_true')
     group.add_argument('--off', action='store_true')
@@ -52,7 +56,6 @@ if __name__ == '__main__':
 
     print "Not implemented yet!"
     
+#    set_backbias_off()
 #    if args.on:
-#        print(set_backbias_on(raftname))
-#    elif args.off:
-#        print(set_backbias_off(raftname))
+#        set_backbias_on()

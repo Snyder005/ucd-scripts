@@ -22,10 +22,8 @@ def change_sequencer(label):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(sys.argv[0])
-    parser.add_argument('label')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('label', type=str)
     args = parser.parse_args()
 
-    label = args.label
-
-    print(change_sequencer(label))
+    change_sequencer(args.label)

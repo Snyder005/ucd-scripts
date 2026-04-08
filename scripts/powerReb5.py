@@ -6,18 +6,30 @@
 
 #This script turns on/off the REB5 Power supplies and sets them to the voltages set in 'lib/PowerSupplyConfig.py'. It does not turn on the back bias voltage.
 import argparse
-from org.lsst.ccs.scripting import CCS
+
+from ccs.scripting import CCS
 from ccs.power import UCDPowerMain
 
-ucd_power = UCDPowerMain()
+def power_reb5_on():
+    
+    fp = CCS.attachProxy('ucd-fp')
+    ucd_power = UCDPowerMain()
 
-def power_reb5_on(raftname):
-    # To power on REB status should be off, else return with state information.
-    # if not on:
+    ccd_state = fp.R21.Reb0.getCCDsPowerState()
+    if ccd_state != 'OFF':
+        raise RuntimeError("invalid CCD power state: {0}".format(ccd_state))
+
     ucd_power.power_on()
 
-def power_reb5_off(raftname):
-    # To power off REB status should be on and FP state should be idle/quiescent.
+def power_reb5_off():
+
+    fp = CCS.attachProxy('ucd-fp')
+    ucd_power = UCDPowerMain()
+    
+    ccd_state = fp.R21.Reb0.getCCDsPowerState()
+    if ccd_state != 'OFF':
+        raise RuntimeError("invalid CCD power state: {0}".format(ccd_state))
+
     ucd_power.power_off()
 
 if __name__ == '__main__':

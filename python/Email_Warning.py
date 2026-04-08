@@ -9,9 +9,8 @@ from email.mime.multipart import MIMEMultipart
 
 #************************************* SUBROUTINES ***********************************************
 lsst_addr="ucdavislsst@gmail.com"
-
 def Send_Warning(message_subject, message_text):
-    to_list=[lsst_addr,'polin@ucdavis.edu','aksnyder@ucdavis.edu','nsbach@ucdavis.edu'] #,
+    to_list=[lsst_addr,'cslage@ucdavis.edu', 'nsbach@ucdavis.edu','aksnyder@ucdavis.edu','tyson@physics.ucdavis.edu', 'jatyson@ucdavis.edu'] #,
     outside_list = []
     # First send waring for all ucdavis addrs to default server at solid.physics.ucdavis.edu
     for to_addr in to_list:
@@ -35,7 +34,7 @@ def Send_Warning(message_subject, message_text):
     # The to_list should be cleansed of any ucdavis.edu clients at this point
     server=smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
-    server.login(lsst_addr,'Nerdlet1414')
+    server.login(lsst_addr,'Nerdlet14')
     msg = MIMEMultipart()
     msg['From']=lsst_addr
     msg['Subject']=message_subject
